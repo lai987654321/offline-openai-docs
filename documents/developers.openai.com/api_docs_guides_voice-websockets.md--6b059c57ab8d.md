@@ -1,0 +1,1039 @@
+# WebSockets
+
+> For the complete documentation index, see [llms.txt](/llms.txt). Markdown versions of documentation pages are available by appending `.md` to the page URL.
+
+Choose your API to see its connection steps and session events.
+
+
+
+## Connect a server to GPT-Live
+
+We recommend [WebRTC](https://developers.openai.com/api/docs/guides/voice-webrtc?api=live) for GPT-Live audio connections, including server-to-server integrations.
+
+WebSockets are also supported. A primary WebSocket carries audio and JSON events in both directions. Keep the project API key on your trusted server.
+
+This guide covers streaming audio to GPT-Live. To monitor or control an existing session, see [Server-side controls](https://developers.openai.com/api/docs/guides/voice-server-controls?api=live). To connect a reasoning and tool backend to the Responses API, see [Responses WebSocket mode](https://developers.openai.com/api/docs/guides/websocket-mode).
+
+### Authenticate and start the session
+
+1. Connect to `wss://api.openai.com/v1/live/sessions` with no query parameters. Authenticate with `Authorization: Bearer $OPENAI_API_KEY` and include the connection headers shown in the example.
+2. Send `session.start` as the first message. Put the model, conversation instructions, audio format, voice, and delegation configuration inside the `session` object.
+3. Wait for `session.started` before sending audio or application commands. It contains the resolved session configuration and session ID.
+
+The example below uses Marin, PCM16 audio at 24 kHz, and a Responses backend with web search. Keep conversation instructions short. Configure backend instructions, tools, and tool permissions through [Delegation and tools](https://developers.openai.com/api/docs/guides/live-delegation).
+
+### Stream audio with an SDK
+
+For Node.js, install `openai` and `ws` with `npm install openai ws` and save the JavaScript example as `client.mjs`. For Python on macOS or Linux, install `openai[realtime]` and save the Python example as `client.py`. Set `OPENAI_API_KEY` in the server environment. These examples require an SDK version with Live support. The example reads raw, mono PCM16 audio at 24 kHz from standard input and writes returned audio in the same format to standard output. Connect these streams to your application's audio capture and playback. Logs and transcript events go to standard error so they do not corrupt the audio stream.
+
+For Go, use Go 1.26 or later, save the example as `main.go`, initialize a module with `go mod init live-demo`, and install `github.com/openai/openai-go/v3@v3.85.1` with `go get`. For Java, use Java 17 or later, add the Maven dependency `com.openai:openai-java:4.95.0`, and use the `LiveConnectionWebsocketExample` class. For Ruby 3.3 or later, install the SDK with `gem install openai -v 0.110.0`, install its WebSocket dependency with `gem install async-websocket`, and save the example as `client.rb`.
+
+```javascript
+import OpenAI from "openai";
+import { LiveWS } from "openai/resources/live/ws";
+
+// stdin and stdout carry raw mono PCM16 audio at 24 kHz, not WAV files.
+// Supply microphone bytes continuously and play stdout in the same format.
+process.stdin.pause();
+const ws = new LiveWS(new OpenAI());
+let started = false;
+let closing = false;
+let finalized = false;
+let pendingByte = Buffer.alloc(0);
+
+let closeTimeout;
+
+ws.socket.on("open", () => {
+  ws.send({
+    type: "session.start",
+    event_id: "event_start",
+    session: {
+      model: "gpt-live-1",
+      instructions:
+        "Be concise. Delegate requests needing current information to the backend, which can search the web.",
+      audio: {
+        format: { type: "audio/pcm", rate: 24000 },
+        output: { voice: "marin" },
+      },
+      delegation: {
+        type: "responses",
+        responses: {
+          model: "gpt-5.6-luna",
+          tools: [{ type: "web_search" }],
+          tool_choice: "auto",
+        },
+      },
+    },
+  });
+});
+
+process.stdin.on("data", (chunk) => {
+  if (!started || closing || ws.socket.readyState !== 1) return;
+  const bytes = Buffer.concat([pendingByte, chunk]);
+  const completeLength = bytes.length - (bytes.length % 2);
+  pendingByte = bytes.subarray(completeLength);
+  if (completeLength) {
+    ws.send({
+      type: "session.input_audio.append",
+      audio: bytes.subarray(0, completeLength).toString("base64"),
+    });
+  }
+});
+
+// Register the final-event handler before any close command can be sent.
+ws.on("event", (event) => {
+  if (event.type === "session.started") {
+    started = true;
+    console.error("Session ready", event.session.id);
+    process.stdin.resume();
+  } else if (event.type === "session.output_audio.delta") {
+    process.stdout.write(Buffer.from(event.delta, "base64"));
+  } else if (event.type === "session.closed") {
+    finalized = true;
+    clearTimeout(closeTimeout);
+    process.stdin.pause();
+    console.error("Final session usage", event.usage);
+    ws.close();
+  } else {
+    // Includes transcript deltas and nested response.event usage.
+    console.error(JSON.stringify(event));
+  }
+});
+
+process.on("SIGINT", () => {
+  if (closing) return;
+  if (!started || ws.socket.readyState !== 1) {
+    ws.socket.platformSocket.terminate();
+    return;
+  }
+  closing = true;
+  process.stdin.pause();
+  ws.send({ type: "session.close" });
+  closeTimeout = setTimeout(() => {
+    console.error("Incomplete finalization: session.closed was not received");
+    process.exitCode = 1;
+    ws.socket.platformSocket.terminate();
+  }, 15_000);
+});
+ws.on("error", (error) => {
+  console.error(error.message);
+  process.exitCode = 1;
+});
+ws.socket.on("close", () => {
+  clearTimeout(closeTimeout);
+  process.stdin.pause();
+  if (!finalized) {
+    console.error("Connection closed without final session usage");
+    process.exitCode = 1;
+  }
+});
+```
+
+```python
+import asyncio
+import base64
+import os
+import signal
+import sys
+
+from openai import AsyncOpenAI
+from openai.types.live.session_config_param import SessionConfigParam
+
+
+async def main() -> None:
+    # stdin/stdout carry raw mono PCM16 at 24 kHz, not WAV files.
+    session: SessionConfigParam = {
+        "model": "gpt-live-1",
+        "instructions": "Be concise. Delegate requests needing current information to the backend, which can search the web.",
+        "audio": {
+            "format": {"type": "audio/pcm", "rate": 24000},
+            "output": {"voice": "marin"},
+        },
+        "delegation": {
+            "type": "responses",
+            "responses": {
+                "model": "gpt-5.6-luna",
+                "tools": [{"type": "web_search"}],
+                "tool_choice": "auto",
+            },
+        },
+    }
+    loop = asyncio.get_running_loop()
+    chunks: asyncio.Queue[bytes] = asyncio.Queue()
+    finalized = asyncio.Event()
+    closing = False
+    pending = b""
+    close_task: asyncio.Task[None] | None = None
+
+    def read_audio() -> None:
+        chunk = os.read(sys.stdin.fileno(), 4800)
+        if chunk:
+            chunks.put_nowait(chunk)
+        else:
+            # EOF does not end a Live session. Use SIGINT to finalize it.
+            loop.remove_reader(sys.stdin.fileno())
+
+    async with AsyncOpenAI() as client:
+        async with client.live.connect() as connection:
+
+            async def send_audio() -> None:
+                nonlocal pending
+                while True:
+                    chunk = pending + await chunks.get()
+                    complete = len(chunk) - len(chunk) % 2
+                    pending = chunk[complete:]
+                    if complete and not closing:
+                        await connection.session.input_audio.append(
+                            audio=base64.b64encode(chunk[:complete]).decode("ascii")
+                        )
+
+            async def close_session() -> None:
+                nonlocal closing
+                closing = True
+                loop.remove_reader(sys.stdin.fileno())
+                await connection.session.close()
+                try:
+                    await asyncio.wait_for(finalized.wait(), timeout=15)
+                except asyncio.TimeoutError:
+                    print(
+                        "Incomplete finalization: no session.closed event",
+                        file=sys.stderr,
+                    )
+                    await connection.close()
+
+            def request_close() -> None:
+                nonlocal close_task
+                if close_task is None:
+                    close_task = asyncio.create_task(close_session())
+
+            # Start receiving before a close command can be requested.
+            await connection.session.start(session=session, event_id="event_start")
+            sender = asyncio.create_task(send_audio())
+            try:
+                async for event in connection:
+                    if event.type == "session.started":
+                        print("Session ready", event.session.id, file=sys.stderr)
+                        loop.add_reader(sys.stdin.fileno(), read_audio)
+                        loop.add_signal_handler(signal.SIGINT, request_close)
+                    elif event.type == "session.output_audio.delta":
+                        sys.stdout.buffer.write(base64.b64decode(event.delta))
+                        sys.stdout.buffer.flush()
+                    elif event.type == "session.closed":
+                        print("Final session usage", event.usage, file=sys.stderr)
+                        finalized.set()
+                        break
+                    else:
+                        print(event.model_dump_json(), file=sys.stderr)
+            finally:
+                loop.remove_reader(sys.stdin.fileno())
+                loop.remove_signal_handler(signal.SIGINT)
+                sender.cancel()
+                await asyncio.gather(sender, return_exceptions=True)
+                if close_task is not None:
+                    await close_task
+            if not finalized.is_set():
+                raise RuntimeError("Connection closed without final session usage")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+```go
+package main
+
+import (
+	"context"
+	"encoding/base64"
+	"fmt"
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/live"
+	"io"
+	"os"
+	"os/signal"
+	"time"
+)
+
+func run() error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	client := openai.NewClient()
+	connection, err := client.Live.Connect(ctx, live.LiveConnectionOptions{})
+	if err != nil {
+		return err
+	}
+	defer connection.Abort()
+	session := live.SessionConfigParam{
+		Model:        "gpt-live-1",
+		Instructions: openai.String("Be concise. Delegate requests needing current information to the backend, which can search the web."),
+		Audio:        live.SessionConfigAudioParam{Format: live.AudioFormatParamOfAudioPCM(24000), Output: live.SessionConfigAudioOutputParam{Voice: live.SessionConfigAudioOutputVoiceUnionParam{OfString: openai.String("marin")}}},
+		Delegation: live.SessionConfigDelegationUnionParam{OfResponses: &live.SessionConfigDelegationResponsesParam{Responses: live.ResponsesDelegationConfigParam{
+			Model: "gpt-5.6-luna", Tools: []live.ResponsesDelegationConfigToolUnionParam{{OfWebSearch: &live.ResponsesDelegationConfigToolWebSearchParam{}}},
+			ToolChoice: live.ResponsesDelegationConfigToolChoiceUnionParam{OfLiveToolChoiceEnum: openai.String("auto")},
+		}}},
+	}
+	if err := connection.Send(ctx, live.ClientEventUnionParam{OfSessionStart: &live.SessionStartEventParam{Session: session, EventID: openai.String("event_start")}}); err != nil {
+		return err
+	}
+	events := make(chan live.ServerEventUnion)
+	failures := make(chan error, 2)
+	go func() {
+		for {
+			event, err := connection.Recv(ctx)
+			if err != nil {
+				select {
+				case failures <- err:
+				case <-ctx.Done():
+				}
+				return
+			}
+			select {
+			case events <- event:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+	audio := make(chan []byte)
+	interrupts := make(chan os.Signal, 1)
+	signal.Notify(interrupts, os.Interrupt)
+	defer signal.Stop(interrupts)
+	timer := time.NewTimer(30 * time.Second)
+	defer timer.Stop()
+	started, closing := false, false
+	for {
+		select {
+		case <-timer.C:
+			return fmt.Errorf("session startup or finalization timed out")
+		case err := <-failures:
+			return err
+		case <-interrupts:
+			if !started {
+				return fmt.Errorf("interrupted before session.started")
+			}
+			if closing {
+				continue
+			}
+			closing = true
+			timer.Reset(15 * time.Second)
+			if err := connection.Send(ctx, live.ClientEventUnionParam{OfSessionClose: &live.SessionCloseEventParam{}}); err != nil {
+				return err
+			}
+		case chunk := <-audio:
+			if closing {
+				continue
+			}
+			if err := connection.Send(ctx, live.ClientEventUnionParam{OfSessionInputAudioAppend: &live.InputAudioAppendEventParam{Audio: base64.StdEncoding.EncodeToString(chunk)}}); err != nil {
+				return err
+			}
+		case event := <-events:
+			switch event.Type {
+			case "error":
+				return fmt.Errorf("Live error: %s", event.RawJSON())
+			case "session.started":
+				if started {
+					continue
+				}
+				started = true
+				timer.Stop()
+				fmt.Fprintln(os.Stderr, "Session ready", event.AsSessionStartedEvent().Session.ID)
+				// stdin/stdout carry raw mono PCM16 at 24 kHz, not WAV files.
+				go func() {
+					pending := []byte{}
+					for {
+						buffer := make([]byte, 4800)
+						n, err := os.Stdin.Read(buffer)
+						pending = append(pending, buffer[:n]...)
+						complete := len(pending) - len(pending)%2
+						if complete > 0 {
+							chunk := append([]byte(nil), pending[:complete]...)
+							pending = pending[complete:]
+							select {
+							case audio <- chunk:
+							case <-ctx.Done():
+								return
+							}
+						}
+						if err != nil {
+							if err != io.EOF {
+								select {
+								case failures <- err:
+								case <-ctx.Done():
+								}
+							}
+							// EOF does not close the session. Press Ctrl+C to finalize it.
+							return
+						}
+					}
+				}()
+			case "session.output_audio.delta":
+				chunk, err := base64.StdEncoding.DecodeString(event.AsOutputAudioDeltaEvent().Delta)
+				if err != nil {
+					return err
+				}
+				if _, err = os.Stdout.Write(chunk); err != nil {
+					return err
+				}
+			case "session.closed":
+				if !started {
+					return fmt.Errorf("session closed before startup")
+				}
+				fmt.Fprintln(os.Stderr, "Final session usage", event.AsSessionClosedEvent().Usage)
+				return nil
+			default:
+				fmt.Fprintln(os.Stderr, event.RawJSON())
+			}
+		}
+	}
+}
+func main() {
+	if err := run(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
+```
+
+```java
+import com.openai.client.okhttp.OkHttpClient;
+import com.openai.core.ClientOptions;
+import com.openai.helpers.LiveConnection;
+import com.openai.models.live.*;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+public final class LiveConnectionWebsocketExample {
+  public static void main(String[] args) throws Exception {
+    var session =
+        SessionConfig.builder()
+            .model("gpt-live-1")
+            .instructions(
+                "Be concise. Delegate requests needing current information to the backend, which can search the web.")
+            .audio(
+                SessionConfig.Audio.builder()
+                    .audioPcmFormat(AudioFormat.AudioPcm.Rate.of(24000L))
+                    .output(SessionConfig.Audio.Output.builder().voice("marin").build())
+                    .build())
+            .responsesDelegation(
+                ResponsesDelegationConfig.builder()
+                    .model("gpt-5.6-luna")
+                    .addToolWebSearch()
+                    .toolChoice(ResponsesDelegationConfig.ToolChoice.LiveToolChoiceEnum.AUTO)
+                    .build())
+            .build();
+    var closing = new AtomicBoolean();
+    var finished = new CountDownLatch(1);
+    var audio = new ArrayBlockingQueue<byte[]>(8);
+    var failures = new ArrayBlockingQueue<Exception>(1);
+    try (var http = OkHttpClient.builder().build();
+        var connection =
+            LiveConnection.connect(ClientOptions.builder().fromEnv().httpClient(http).build())) {
+      Thread shutdown =
+          new Thread(
+              () -> {
+                closing.set(true);
+                try {
+                  if (!finished.await(15, TimeUnit.SECONDS)) {
+                    System.err.println("Incomplete finalization: no session.closed event");
+                    connection.close();
+                  }
+                } catch (InterruptedException interrupted) {
+                  Thread.currentThread().interrupt();
+                }
+              });
+      Runtime.getRuntime().addShutdownHook(shutdown);
+      try {
+        connection.send(
+            ClientEvent.ofSessionStart(
+                SessionStartEvent.builder().session(session).eventId("event_start").build()));
+        boolean started = false, closeSent = false;
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
+        var incoming = connection.receiveAsync();
+        while (true) {
+          if (System.nanoTime() > deadline)
+            throw new IllegalStateException("Session startup or finalization timed out");
+          if (!failures.isEmpty()) throw failures.take();
+          if (closing.get() && started && !closeSent) {
+            closeSent = true;
+            deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
+            connection.send(ClientEvent.ofSessionClose(SessionCloseEvent.builder().build()));
+          }
+          var chunk = audio.poll();
+          if (chunk != null && !closing.get())
+            connection.send(
+                ClientEvent.ofSessionInputAudioAppend(
+                    InputAudioAppendEvent.builder()
+                        .audio(Base64.getEncoder().encodeToString(chunk))
+                        .build()));
+          ServerEvent event;
+          try {
+            event = incoming.get(20, TimeUnit.MILLISECONDS);
+          } catch (TimeoutException waiting) {
+            continue;
+          }
+          if (event.isErrorEvent()) throw new IllegalStateException(event.toString());
+          if (event.isSessionStarted() && !started) {
+            started = true;
+            deadline = Long.MAX_VALUE;
+            System.err.println("Session ready " + event.asSessionStarted().session().id());
+            // stdin/stdout carry raw mono PCM16 at 24 kHz, not WAV files.
+            Thread reader =
+                new Thread(
+                    () -> {
+                      try {
+                        int pending = -1;
+                        while (!closing.get()) {
+                          byte[] buffer = new byte[4800];
+                          int offset = pending < 0 ? 0 : 1;
+                          if (offset == 1) buffer[0] = (byte) pending;
+                          int count = System.in.read(buffer, offset, buffer.length - offset);
+                          // EOF does not close the session. Press Ctrl+C to finalize it.
+                          if (count < 0) return;
+                          count += offset;
+                          pending = count % 2 == 0 ? -1 : Byte.toUnsignedInt(buffer[count - 1]);
+                          int complete = count - count % 2;
+                          if (complete > 0) audio.put(Arrays.copyOf(buffer, complete));
+                        }
+                      } catch (Exception error) {
+                        failures.offer(error);
+                      }
+                    });
+            reader.setDaemon(true);
+            reader.start();
+          } else if (event.isSessionOutputAudioDelta()) {
+            System.out.write(Base64.getDecoder().decode(event.asSessionOutputAudioDelta().delta()));
+            System.out.flush();
+          } else if (event.isSessionClosed()) {
+            if (!started) throw new IllegalStateException("Session closed before startup");
+            System.err.println("Final session usage " + event.asSessionClosed().usage());
+            return;
+          } else {
+            System.err.println(event);
+          }
+          incoming = connection.receiveAsync();
+        }
+      } finally {
+        closing.set(true);
+        finished.countDown();
+        try {
+          Runtime.getRuntime().removeShutdownHook(shutdown);
+        } catch (IllegalStateException shuttingDown) {
+          /* The hook is already draining. */
+        }
+      }
+    }
+  }
+}
+```
+
+```ruby
+require "openai"
+require "base64"
+$stdin.binmode
+$stdout.binmode
+session = {
+  model: "gpt-live-1",
+  instructions: "Be concise. Delegate requests needing current information to the backend, which can search the web.",
+  audio: {
+    format: {
+      type: :"audio/pcm",
+      rate: 24_000
+    },
+    output: { voice: :marin }
+  },
+  delegation: {
+    type: :responses,
+    responses: {
+      model: "gpt-5.6-luna",
+      tools: [{ type: :web_search }],
+      tool_choice: :auto
+    }
+  }
+}
+client = OpenAI::Client.new
+client.live.connect do |connection|
+  state = {
+    closing: false,
+    finalized: false,
+    started: false
+  }
+  threads = {}
+  mutex = Mutex.new
+  previous = trap("INT") do
+    threads[:closer] ||= Thread.new do
+      mutex.synchronize do
+        state[:closing] = true
+        if state[:started]
+          connection.send_event(type: :"session.close")
+        else
+          connection.close
+        end
+      end
+      sleep 15
+      unless state[:finalized]
+        warn "Incomplete finalization: no session.closed event"
+        connection.close
+      end
+    end
+  end
+  begin
+    threads[:startup] = Thread.new do
+      sleep 30
+      unless state[:started]
+        warn "Session startup timed out"
+        connection.close
+      end
+    end
+    connection.send_event(type: :"session.start", session: session, event_id: "event_start")
+    connection.each do |event|
+      case event
+      when OpenAI::Models::Live::ErrorEvent
+        raise "Live error: #{event.to_json}"
+      when OpenAI::Models::Live::SessionStartedEvent
+        next if state[:started]
+
+        state[:started] = true
+        warn "Session ready #{event.session.id}"
+        # stdin/stdout carry raw mono PCM16 at 24 kHz, not WAV files.
+        threads[:sender] = Thread.new do
+          pending = +"".b
+          loop do
+            pending << $stdin.readpartial(4800)
+            complete = pending.bytesize - pending.bytesize % 2
+            chunk = pending.slice!(0, complete).to_s
+            mutex.synchronize do
+              break if state[:closing]
+
+              connection.send_event(type: :"session.input_audio.append", audio: Base64.strict_encode64(chunk)) unless chunk.empty?
+            end
+          end
+        rescue EOFError
+          # EOF does not close the session. Press Ctrl+C to finalize it.
+          nil
+        rescue => error
+          warn "Audio input failed: #{error.class}"
+          connection.close
+        end
+      when OpenAI::Models::Live::OutputAudioDeltaEvent
+        $stdout.write(Base64.strict_decode64(event.delta))
+        $stdout.flush
+      when OpenAI::Models::Live::SessionClosedEvent
+        raise "Session closed before startup" unless state[:started]
+
+        warn "Final session usage #{event.usage}"
+        state[:finalized] = true
+        break
+      else
+        warn event.to_json
+      end
+    end
+    raise "Connection closed without final session usage" unless state[:finalized]
+  ensure
+    trap("INT", previous)
+    threads[:startup]&.kill
+    threads[:startup]&.join
+    threads[:sender]&.kill
+    threads[:sender]&.join
+    threads[:closer]&.kill
+    threads[:closer]&.join
+  end
+end
+```
+
+
+Run `node client.mjs`, `python client.py`, `go run .`, `ruby client.rb`, or your Java application with your audio source and player attached. After `Session ready` appears, supply a continuous microphone stream paced at its recorded sample rate. Piping an entire file at once does not simulate a live microphone. EOF on the audio source does not end the conversation. Send `SIGINT` to the process to request a graceful close.
+
+The example connects the audio streams; your application handles capture, buffering, playback, and resampling when needed. Test these parts with your devices and network before evaluating model behavior.
+
+### Choose the audio format
+
+Set `session.audio.format` at startup. One format applies to both input and output and cannot change during the session.
+
+- `{"type":"audio/pcm","rate":24000}`: mono signed 16-bit little-endian PCM at 24 kHz; the default.
+- `{"type":"audio/pcm","rate":16000}`: mono signed 16-bit little-endian PCM at 16 kHz.
+- `{"type":"audio/pcmu","rate":8000}`: G.711 μ-law at 8 kHz, one byte per sample.
+- `{"type":"audio/pcma","rate":8000}`: G.711 A-law at 8 kHz, one byte per sample.
+
+Base64-encode raw bytes without a WAV or other container header. PCM chunks must contain complete 16-bit samples, so their byte length must be even. The example carries a trailing byte into the next input chunk. Chunk boundaries are otherwise arbitrary: preserve a continuous, ordered stream.
+
+Resample audio when its sample rate differs from the configured rate. Changing the format setting does not convert your input bytes. To adapt the example for G.711, forward each chunk's codec bytes without the PCM-specific two-byte alignment logic, and configure the output player for the same codec. A matching G.711 stream can pass through without conversion to PCM. See [Telephony integrations](https://developers.openai.com/api/docs/guides/voice-sip?api=live) for connecting a phone call.
+
+### Send and receive events
+
+Send each event as a JSON text message. Audio travels as base64 inside those messages.
+
+- **Send audio:** send `session.input_audio.append` with raw, base64-encoded bytes in `audio`. Audio appends have no acknowledgment.
+- **Receive audio:** decode `delta` from each `session.output_audio.delta` event and queue the audio for playback in order, using the configured format.
+- **Receive transcripts:** append the text in `delta` from `session.input_transcript.delta` and `session.output_transcript.delta` to the corresponding transcript.
+- **Receive backend events:** when using Responses delegation, process the nested `event` in each `response.event` envelope.
+- **Handle errors:** handle rejected commands and session errors from `error` events. Use `error.client_event_id`, when present, to identify the command.
+
+Track playback with your application’s audio queue. GPT-Live’s primary WebSocket sends output audio without timing fields or an output-audio-done event. Use transcript timestamps to organize captions and backend events to track delegated work.
+
+GPT-Live manages when to listen and speak as audio streams continuously. Use `response.create` to start or continue delegated backend work. See [Delegation and tools](https://developers.openai.com/api/docs/guides/live-delegation) for that workflow.
+
+### Configure an ongoing session
+
+The Live model, initial conversation instructions, audio format, voice, and delegation mode are fixed at startup. Use `session.update` for supported settings within the existing delegation mode; omitted settings keep their current values. A successful update returns `session.updated` with the resolved session configuration.
+
+Use `session.instructions.append` to add conversation instructions, and `session.input_audio.mute` or `session.input_audio.unmute` to control incoming audio. Muting input does not cancel backend work or stop generated speech. See [Managing sessions](https://developers.openai.com/api/docs/guides/live-conversations) for context updates, transcripts, input controls, and usage.
+
+### Close the session
+
+Send `session.close` when the conversation ends. Install the `session.closed` listener first, keep receiving until that event arrives, and then release the connection. The example waits up to 15 seconds and reports incomplete finalization if the terminal event never arrives.
+
+Preserve the final voice usage from `session.closed` and the backend usage events already received. Voice-duration updates are cumulative snapshots; do not add them together. A transport failure or timeout before `session.closed` leaves final usage unconfirmed. See [Managing sessions](https://developers.openai.com/api/docs/guides/live-conversations) for the full lifecycle.
+
+  
+
+  
+
+
+[WebSockets](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API) are a broadly supported API for realtime data transfer, and a great choice for connecting to the OpenAI Realtime API in server-to-server applications. For browser and mobile clients, we recommend connecting via [WebRTC](https://developers.openai.com/api/docs/guides/voice-webrtc?api=realtime).
+
+In a server-to-server integration with Realtime, your backend system will connect via WebSocket directly to the Realtime API. You can use a [standard API key](https://platform.openai.com/settings/organization/api-keys) to authenticate this connection, since the token will only be available on your secure backend server.
+
+![connect directly to realtime API](https://openaidevs.retool.com/api/file/464d4334-c467-4862-901b-d0c6847f003a)
+
+## Connect via WebSocket
+
+Below are several examples of connecting via WebSocket to the Realtime API. In addition to using the WebSocket URL below, you will also need to pass an authentication header using your OpenAI API key. If your application assigns [safety identifiers](https://developers.openai.com/api/docs/guides/safety-best-practices#implement-safety-identifiers), pass the stable, privacy-preserving identifier for the end user in the `OpenAI-Safety-Identifier` header.
+
+It is possible to use WebSocket in browsers with an ephemeral API token as shown in the [WebRTC connection guide](https://developers.openai.com/api/docs/guides/voice-webrtc?api=realtime), but if you are connecting from a client like a browser or mobile app, WebRTC will be a more robust solution in most cases.
+
+<ContentSwitcher
+  id="connection-example"
+  initialValue="ws"
+  options={[
+    { value: "ws", label: "ws module (Node.js)" },
+    { value: "python", label: "websocket-client (Python)" },
+    { value: "ruby", label: "OpenAI SDK (Ruby)" },
+    { value: "java", label: "OpenAI SDK (Java)" },
+    { value: "go", label: "OpenAI SDK (Go)" },
+    { value: "csharp", label: "OpenAI SDK (.NET)" },
+    { value: "websocket", label: "WebSocket (browsers)" },
+  ]}
+>
+  
+
+    
+
+      `ws` module (Node.js)
+    
+
+    Connect using the ws module (Node.js)
+
+```javascript
+import WebSocket from "ws";
+
+const url = "wss://api.openai.com/v1/realtime?model=gpt-realtime-2.1";
+const ws = new WebSocket(url, {
+  headers: {
+    Authorization: "Bearer " + process.env.OPENAI_API_KEY,
+    "OpenAI-Safety-Identifier": "hashed-user-id",
+  },
+});
+
+let connected = false;
+ws.on("message", function incoming(message) {
+  const event = JSON.parse(message.toString());
+  if (event.type === "error") throw new Error(event.error.message);
+  if (event.type === "session.created") {
+    connected = true;
+    console.log(`Connected to the Realtime API: ${event.session.id}`);
+    ws.close(1000);
+  }
+});
+ws.on("close", () => {
+  if (!connected)
+    throw new Error("Connection closed before the session was created");
+});
+```
+
+  
+
+  
+
+    
+websocket-client (Python)
+
+    Connect with websocket-client (Python)
+
+```python
+# example requires websocket-client library:
+# pip install websocket-client
+
+import os
+import json
+import websocket
+
+OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
+
+url = "wss://api.openai.com/v1/realtime?model=gpt-realtime-2.1"
+headers = [
+    "Authorization: Bearer " + OPENAI_API_KEY,
+    "OpenAI-Safety-Identifier: hashed-user-id",
+]
+
+
+session_created = False
+
+
+def on_message(ws, message):
+    global session_created
+    data = json.loads(message)
+    if data["type"] == "session.created":
+        session_created = True
+        print("Connected to the Realtime API:", data["session"]["id"])
+        ws.close()
+    elif data["type"] == "error":
+        ws.close()
+
+
+ws = websocket.WebSocketApp(
+    url,
+    header=headers,
+    on_message=on_message,
+)
+
+ws.run_forever()
+if not session_created:
+    raise RuntimeError("Connection closed before the Realtime session was created.")
+```
+
+  
+
+  
+
+    
+OpenAI SDK (Ruby)
+
+    
+
+      Install the required gems with 
+      `gem install openai async-websocket`.
+    
+
+    Connect with the OpenAI SDK (Ruby)
+
+```ruby
+require "openai"
+
+client = OpenAI::Client.new(
+  default_headers: { "OpenAI-Safety-Identifier" => "hashed-user-id" }
+)
+
+client.realtime.connect(model: "gpt-realtime-2.1") do |connection|
+  created = connection.find do |event|
+    raise event.error.message if event.is_a?(OpenAI::Realtime::RealtimeErrorEvent)
+
+    next unless event.is_a?(OpenAI::Realtime::SessionCreatedEvent)
+
+    puts("Connected to the Realtime API: #{event.session[:id]}")
+    true
+  end
+  raise "Connection closed before the session was created" unless created
+end
+```
+
+  
+
+  
+
+    
+OpenAI SDK (Java)
+
+    
+
+      Use Java 17 or later with `com.openai:openai-java:4.75.1`.
+    
+
+    Connect with the OpenAI SDK (Java)
+
+```java
+import com.openai.client.okhttp.OkHttpClient;
+import com.openai.core.ClientOptions;
+import com.openai.helpers.RealtimeConnection;
+import com.openai.helpers.RealtimeWebSocketOptions;
+import com.openai.models.realtime.*;
+
+var http = OkHttpClient.builder().build();
+var options =
+    ClientOptions.builder()
+        .fromEnv()
+        .httpClient(http)
+        .putHeader("OpenAI-Safety-Identifier", "hashed-user-id")
+        .build();
+try (http;
+    var connection =
+        RealtimeConnection.connect(
+            options,
+            RealtimeWebSocketOptions.builder().model("gpt-realtime-2.1").build())) {
+  while (true) {
+    var event = connection.receive();
+    if (event.error().isPresent())
+      throw new IllegalStateException(event.error().orElseThrow().toString());
+    if (event.sessionCreated().isPresent()) {
+      System.out.println("Connected to server.");
+      System.out.println(event);
+      break;
+    }
+  }
+}
+```
+
+  
+
+  
+
+    
+OpenAI SDK (Go)
+
+    
+
+      Use Go 1.26 or later and install the SDK with 
+      `go get github.com/openai/openai-go/v3@v3.85.1`. The SDK
+      manages the socket transport. Your application handles events, captures
+      and plays audio, and restores session state after a reconnect.
+    
+
+    Connect with the OpenAI SDK (Go)
+
+```go
+ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+defer cancel()
+client := openai.NewClient()
+conn, err := client.Realtime.Connect(ctx, realtime.RealtimeConnectionOptions{}, option.WithQuery("model", "gpt-realtime-2.1"), option.WithHeader("OpenAI-Safety-Identifier", "hashed-user-id"))
+if err != nil {
+	return err
+}
+defer conn.Close()
+```
+
+  
+
+  
+
+    
+OpenAI SDK (.NET)
+
+    
+
+      Install the SDK with 
+      `dotnet add package OpenAI --version 2.14.0`. The Realtime API
+      uses experimental SDK types; the example includes the required warning
+      directive.
+    
+
+    Connect with the OpenAI SDK (.NET)
+
+```csharp
+using OpenAI.Realtime;
+
+#pragma warning disable OPENAI002
+
+string key = Environment.GetEnvironmentVariable("OPENAI_API_KEY")!;
+RealtimeClient client = new(key);
+
+RealtimeSessionClientOptions options = new();
+options.Headers["OpenAI-Safety-Identifier"] = "hashed-user-id";
+using CancellationTokenSource timeout = new(TimeSpan.FromSeconds(30));
+using RealtimeSessionClient session = await client.StartConversationSessionAsync("gpt-realtime-2.1", options, cancellationToken: timeout.Token);
+await foreach (RealtimeServerUpdate update in session.ReceiveUpdatesAsync(timeout.Token))
+{
+    if (update is RealtimeServerUpdateError error)
+        throw new InvalidOperationException(error.Error.Message);
+    if (update is RealtimeServerUpdateSessionCreated)
+    {
+        Console.WriteLine("Connected to server.");
+        Console.WriteLine(System.ClientModel.Primitives.ModelReaderWriter.Write(update));
+        return;
+    }
+}
+throw new InvalidOperationException("Connection closed before session creation.");
+```
+
+  
+
+  
+
+    
+WebSocket (browsers)
+
+    Connect with standard WebSocket (browsers)
+
+```javascript
+/*
+Note that in client-side environments like web browsers, we recommend
+using WebRTC instead. It is possible, however, to use the standard
+WebSocket interface in browser-like environments like Deno and
+Cloudflare Workers.
+*/
+
+const ws = new WebSocket(
+  "wss://api.openai.com/v1/realtime?model=gpt-realtime-2.1",
+  [
+    "realtime",
+    // Use a short-lived token fetched from your application server.
+    "openai-insecure-api-key." + OPENAI_REALTIME_EPHEMERAL_KEY,
+  ]
+);
+
+ws.addEventListener("open", function open() {
+  console.log("Connected to server.");
+});
+
+ws.addEventListener("message", function incoming(event) {
+  console.log(event.data);
+});
+```
+
+
+
+## Sending and receiving events
+
+Realtime API sessions are managed using a combination of [client-sent events](https://developers.openai.com/api/reference/resources/realtime/client-events#session.update) emitted by you as the developer, and [server-sent events](https://developers.openai.com/api/reference/resources/realtime/server-events#error) created by the Realtime API to indicate session lifecycle events.
+
+Over a WebSocket, you will both send and receive JSON-serialized events as strings of text, as in this Node.js example below (the same principles apply for other WebSocket libraries):
+
+```javascript
+import WebSocket from "ws";
+
+const url = "wss://api.openai.com/v1/realtime?model=gpt-realtime-2.1";
+const ws = new WebSocket(url, {
+  headers: {
+    Authorization: "Bearer " + process.env.OPENAI_API_KEY,
+    "OpenAI-Safety-Identifier": "hashed-user-id",
+  },
+});
+
+ws.on("open", function open() {
+  console.log("Connected to server.");
+
+  // Send client events over the WebSocket once connected
+  ws.send(
+    JSON.stringify({
+      type: "session.update",
+      session: {
+        type: "realtime",
+        instructions: "Be extra nice today!",
+      },
+    })
+  );
+});
+
+// Listen for and parse server events
+ws.on("message", function incoming(message) {
+  console.log(JSON.parse(message.toString()));
+});
+```
+
+
+The WebSocket interface is perhaps the lowest-level interface available to interact with a Realtime model, where you will be responsible for both sending and processing Base64-encoded audio chunks over the socket connection.
+
+To learn how to send and receive audio over Websockets, refer to the [Realtime conversations guide](https://developers.openai.com/api/docs/guides/realtime-conversations#handling-audio-with-websockets).
+
+  
+
+</ContentSwitcher>

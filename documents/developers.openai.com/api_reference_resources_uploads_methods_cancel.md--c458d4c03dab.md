@@ -1,0 +1,192 @@
+> For the complete documentation index, see [llms.txt](/llms.txt). Markdown versions of documentation pages are available by appending `.md` to the page URL.
+
+## Cancel upload
+
+**post** `/uploads/{upload_id}/cancel`
+
+Cancels the Upload. No Parts may be added after an Upload is cancelled.
+
+Returns the Upload object with status `cancelled`.
+
+### Path Parameters
+
+- `upload_id: string`
+
+  The ID of the Upload.
+
+### Returns
+
+- `Upload object { id, bytes, created_at, 6 more }`
+
+  The Upload object can accept byte chunks in the form of Parts.
+
+  - `id: string`
+
+    The Upload unique identifier, which can be referenced in API endpoints.
+
+  - `bytes: integer`
+
+    The intended number of bytes to be uploaded.
+
+  - `created_at: integer`
+
+    The Unix timestamp (in seconds) for when the Upload was created.
+
+    `format: unixtime`
+
+  - `expires_at: integer`
+
+    The Unix timestamp (in seconds) for when the Upload will expire.
+
+    `format: unixtime`
+
+  - `filename: string`
+
+    The name of the file to be uploaded.
+
+  - `purpose: string`
+
+    The intended purpose of the file. [Please refer here](/api/reference/resources/files#%28resource%29%20files%20%3E%20%28model%29%20file_object%20%3E%20%28schema%29%20%3E%20%28property%29%20purpose) for acceptable values.
+
+  - `status: "pending" or "completed" or "cancelled" or "expired"`
+
+    The status of the Upload.
+
+    - `"pending"`
+
+    - `"completed"`
+
+    - `"cancelled"`
+
+    - `"expired"`
+
+  - `file: optional FileObject or null`
+
+    The ready File object after the Upload is completed.
+
+    - `id: string`
+
+      The file identifier, which can be referenced in the API endpoints.
+
+    - `bytes: integer or null`
+
+      The size of the file, in bytes. In a completed file upload response, this can
+      be null when the file size is not yet available.
+
+    - `created_at: integer`
+
+      The Unix timestamp (in seconds) for when the file was created.
+
+      `format: unixtime`
+
+    - `filename: string`
+
+      The name of the file.
+
+    - `object: "file"`
+
+      The object type, which is always `file`.
+
+      - `"file"`
+
+    - `purpose: "assistants" or "assistants_output" or "batch" or 5 more`
+
+      The intended purpose of the file. Supported values are `assistants`, `assistants_output`, `batch`, `batch_output`, `fine-tune`, `fine-tune-results`, `vision`, and `user_data`.
+
+      - `"assistants"`
+
+      - `"assistants_output"`
+
+      - `"batch"`
+
+      - `"batch_output"`
+
+      - `"fine-tune"`
+
+      - `"fine-tune-results"`
+
+      - `"vision"`
+
+      - `"user_data"`
+
+    - `status: "uploaded" or "processed" or "error"`
+
+      Deprecated. The current status of the file, which can be either `uploaded`, `processed`, or `error`.
+
+      - `"uploaded"`
+
+      - `"processed"`
+
+      - `"error"`
+
+    - `expires_at: optional integer`
+
+      The Unix timestamp (in seconds) for when the file will expire. In a
+      completed file upload response, this can be null when no expiry is set.
+
+      `format: unixtime`
+
+    - `status_details: optional string`
+
+      Deprecated. For details on why a fine-tuning training file failed validation, see the `error` field on `fine_tuning.job`. Completed file upload responses can return null when these details are unset.
+
+  - `object: optional "upload"`
+
+    The object type, which is always "upload".
+
+    - `"upload"`
+
+### Example
+
+```http
+curl https://api.openai.com/v1/uploads/$UPLOAD_ID/cancel \
+    -X POST \
+    -H "Authorization: Bearer $OPENAI_API_KEY"
+```
+
+#### 200 — Example
+
+```json
+{
+  "id": "id",
+  "bytes": 0,
+  "created_at": 0,
+  "expires_at": 0,
+  "filename": "filename",
+  "purpose": "purpose",
+  "status": "pending",
+  "file": {
+    "id": "id",
+    "bytes": 0,
+    "created_at": 0,
+    "filename": "filename",
+    "object": "file",
+    "purpose": "assistants",
+    "status": "uploaded",
+    "expires_at": 0,
+    "status_details": "status_details"
+  },
+  "object": "upload"
+}
+```
+
+### Example
+
+```http
+curl https://api.openai.com/v1/uploads/upload_abc123/cancel
+```
+
+#### Response example
+
+```json
+{
+  "id": "upload_abc123",
+  "object": "upload",
+  "bytes": 2147483648,
+  "created_at": 1719184911,
+  "filename": "training_examples.jsonl",
+  "purpose": "fine-tune",
+  "status": "cancelled",
+  "expires_at": 1719127296
+}
+```

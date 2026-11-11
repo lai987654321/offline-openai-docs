@@ -1,0 +1,169 @@
+> For the complete documentation index, see [llms.txt](/llms.txt). Markdown versions of documentation pages are available by appending `.md` to the page URL.
+
+## Create speech
+
+**post** `/audio/speech`
+
+Generates audio from the input text.
+
+Returns the audio file content, or a stream of audio events.
+
+The `tts-1`, `tts-1-hd`, `gpt-4o-mini-tts`, `gpt-4o-mini-tts-2025-03-20`, and
+`gpt-4o-mini-tts-2025-12-15` models are deprecated and scheduled to shut down
+on January 6, 2027. These examples use the existing Speech API; for new
+integrations, migrate to `gpt-realtime-2.1-mini` through the
+[Realtime API](https://developers.openai.com/api/docs/guides/realtime). See the
+[deprecation schedule](https://developers.openai.com/api/docs/deprecations) for migration details.
+
+### Body Parameters
+
+Content type: `application/json`
+
+- `input: string`
+
+  The text to generate audio for. The maximum length is 4096 characters.
+
+  `maxLength: 4096`
+
+- `model: string or SpeechModel`
+
+  One of the available [TTS models](/api/docs/guides/text-to-speech): `tts-1`, `tts-1-hd`, `gpt-4o-mini-tts`, or `gpt-4o-mini-tts-2025-12-15`.
+
+  - `string`
+
+  - `SpeechModel = "tts-1" or "tts-1-hd" or "gpt-4o-mini-tts" or "gpt-4o-mini-tts-2025-12-15"`
+
+    - `"tts-1"`
+
+    - `"tts-1-hd"`
+
+    - `"gpt-4o-mini-tts"`
+
+    - `"gpt-4o-mini-tts-2025-12-15"`
+
+- `voice: string or "alloy" or "ash" or "ballad" or 10 more or ID { id }`
+
+  The voice to use when generating the audio. Supported built-in voices are `alloy`, `ash`, `ballad`, `coral`, `echo`, `fable`, `onyx`, `nova`, `sage`, `shimmer`, `verse`, `marin`, and `cedar`. You may also provide a custom voice object with an `id`, for example `{ "id": "voice_1234" }`. Previews of the voices are available in the [Text to speech guide](/api/docs/guides/text-to-speech#voice-options). Custom voices must be created from audio samples. Voices created from text prompts are supported only in Live.
+
+  - `string`
+
+  - `"alloy" or "ash" or "ballad" or 10 more`
+
+    The voice to use when generating the audio. Supported built-in voices are `alloy`, `ash`, `ballad`, `coral`, `echo`, `fable`, `onyx`, `nova`, `sage`, `shimmer`, `verse`, `marin`, and `cedar`. You may also provide a custom voice object with an `id`, for example `{ "id": "voice_1234" }`. Previews of the voices are available in the [Text to speech guide](/api/docs/guides/text-to-speech#voice-options). Custom voices must be created from audio samples. Voices created from text prompts are supported only in Live.
+
+    - `"alloy"`
+
+    - `"ash"`
+
+    - `"ballad"`
+
+    - `"coral"`
+
+    - `"echo"`
+
+    - `"sage"`
+
+    - `"shimmer"`
+
+    - `"verse"`
+
+    - `"marin"`
+
+    - `"cedar"`
+
+    - `"fable"`
+
+    - `"onyx"`
+
+    - `"nova"`
+
+  - `ID object { id }`
+
+    Custom voice reference.
+
+    - `id: string`
+
+      The custom voice ID, e.g. `voice_1234`.
+
+- `instructions: optional string`
+
+  Control the voice of your generated audio with additional instructions. Does not work with `tts-1` or `tts-1-hd`.
+
+  `maxLength: 4096`
+
+- `response_format: optional "mp3" or "opus" or "aac" or 3 more (default: "mp3")`
+
+  The format to audio in. Supported formats are `mp3`, `opus`, `aac`, `flac`, `wav`, and `pcm`.
+
+  - `"mp3"`
+
+  - `"opus"`
+
+  - `"aac"`
+
+  - `"flac"`
+
+  - `"wav"`
+
+  - `"pcm"`
+
+- `speed: optional number (default: 1)`
+
+  The speed of the generated audio. Select a value from `0.25` to `4.0`. `1.0` is the default.
+
+  `minimum: 0.25`, `maximum: 4`
+
+- `stream_format: optional "sse" or "audio" (default: "audio")`
+
+  The format to stream the audio in. Supported formats are `sse` and `audio`. `sse` is not supported for `tts-1` or `tts-1-hd`.
+
+  - `"sse"`
+
+  - `"audio"`
+
+### Returns
+
+`file`
+
+Content type: `application/octet-stream`
+
+### Example
+
+```http
+curl https://api.openai.com/v1/audio/speech \
+    -H 'Content-Type: application/json' \
+    -H "Authorization: Bearer $OPENAI_API_KEY" \
+    -d '{
+          "input": "input",
+          "model": "tts-1",
+          "voice": "ash"
+        }'
+```
+
+### Example
+
+```http
+curl https://api.openai.com/v1/audio/speech \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o-mini-tts",
+    "input": "The quick brown fox jumped over the lazy dog.",
+    "voice": "alloy"
+  }' \
+  --output speech.mp3
+```
+
+### SSE Stream Format
+
+```http
+curl https://api.openai.com/v1/audio/speech \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o-mini-tts",
+    "input": "The quick brown fox jumped over the lazy dog.",
+    "voice": "alloy",
+    "stream_format": "sse"
+  }'
+```

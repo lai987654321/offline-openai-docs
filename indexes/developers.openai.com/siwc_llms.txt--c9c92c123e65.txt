@@ -1,0 +1,37 @@
+# Sign in with ChatGPT
+
+> Add ChatGPT sign-in to your website, plugin, or open-source client.
+
+Use this as a compact map of Sign in with ChatGPT docs. Each page has a Markdown twin at `/siwc/<slug>.md`.
+
+## Documentation sets
+- [Combined Sign in with ChatGPT docs](https://developers.openai.com/siwc/llms-full.txt): Single-file Markdown export of Sign in with ChatGPT docs.
+
+## Account Security Notification
+- [Account security notification](https://developers.openai.com/siwc/account-security-notification.md): Receive security notifications from OpenAI and sign out affected users or sessions.
+
+## ChatGPT plugin
+- [In your ChatGPT plugin](https://developers.openai.com/siwc/chatgpt-plugin.md): Reuse Sign in with ChatGPT inside your plugin's connector authorization flow.
+
+## Quickstart
+- [Quickstart](https://developers.openai.com/siwc/quickstart.md): Choose a Sign in with ChatGPT integration for your website, plugin, or open-source client.
+
+## Request Client Id
+- [Request a client ID](https://developers.openai.com/siwc/request-client-id.md): Request a client ID for your Sign in with ChatGPT integration.
+
+## ChatGPT plan usage
+- [Overview](https://developers.openai.com/siwc/token-sharing-open-source.md): Understand ChatGPT plan usage, OAuth clients, host identifiers, and the path to a completed request.
+- [Accounts and sessions](https://developers.openai.com/siwc/token-sharing-open-source/profiles-and-sessions.md): Manage ChatGPT accounts, renew access, sign out, and protect credentials.
+- [Codex app-server](https://developers.openai.com/siwc/token-sharing-open-source/codex-app-server.md): Configure Codex app-server to use an OAuth access token authorized for ChatGPT plan usage.
+- [Errors and recovery](https://developers.openai.com/siwc/token-sharing-open-source/errors-and-recovery.md): Handle declined consent, admission failures, Responses errors, and revoked sessions.
+- [Models and inference](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference.md): List models and stream a Responses API request through completed inference.
+- [Preview limitations](https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations.md): Review Responses API requirements and Codex app-server behavior for ChatGPT plan usage.
+- [Registration and sign-in](https://developers.openai.com/siwc/token-sharing-open-source/sign-in.md): Register an open-source client, validate the ID token and permissions, and store the user’s basic account info and credentials.
+- [Self-hosted VMs](https://developers.openai.com/siwc/token-sharing-open-source/self-hosted-vms.md): Prepare a VM host ID and transfer protected SIWC credentials for the selected ChatGPT account.
+- [Token reference](https://developers.openai.com/siwc/token-sharing-open-source/token-reference.md): Look up token-response fields, lifetimes, and access-token claims.
+
+## UI/UX guidelines
+- [UI/UX guidelines](https://developers.openai.com/siwc/ui-ux-guidelines.md): Design clear experiences for using a ChatGPT plan, managing usage, and choosing an eligible app plan.
+
+## Website
+- [On your website](https://developers.openai.com/siwc/website.md): Add Sign in with ChatGPT using Authorization Code with PKCE and OpenID Connect.

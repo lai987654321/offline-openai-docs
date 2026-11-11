@@ -1,0 +1,703 @@
+# Apply Patch
+
+> For the complete documentation index, see [llms.txt](/llms.txt). Markdown versions of documentation pages are available by appending `.md` to the page URL.
+
+Use `apply_patch` with the Responses API to propose file creations, updates, and deletions as structured diffs. Your application applies each operation and returns its result. The examples use `gpt-6-astra`.
+
+## When to use
+
+You can use `apply_patch` for the following tasks.
+
+- **Multi-file refactors.** Rename symbols, extract helpers, or reorganize modules across many files at once.
+- **Bug fixes.** Have the model both diagnose issues and emit precise patches.
+- **Tests & docs generation.** Create new test files, fixtures, and documentation alongside code changes.
+- **Migrations & mechanical edits.** Apply repetitive, structured updates (API migrations, type annotations, formatting fixes, etc.).
+
+If you can describe your repo and desired change in text, `apply_patch` can usually generate the corresponding diffs.
+
+## Use apply patch tool with Responses API
+
+At a high level, using `apply_patch` with the Responses API looks like this:
+
+1. **Call the Responses API with the `apply_patch` tool**
+   - Provide the model with context about available files (or a summary) in your `input`, or give the model tools for exploring your file system.
+   - Enable the tool with `tools=[{"type": "apply_patch"}]`.
+2. **Let the model return one or more patch operations**
+   - The Response output includes one or more `apply_patch_call` objects.
+   - Each call describes a single file operation: create, update, or delete.
+3. **Apply patches in your environment**
+   - Run a patch harness or script that:
+     - Interprets the `operation` diff for each `apply_patch_call`.
+     - Applies the patch to your working directory or repo.
+     - Records whether each patch succeeded and any logs or error messages.
+4. **Report patch results back to the model**
+   - Call the Responses API again, either with `previous_response_id` or by passing back your conversation items into `input`.
+   - Include an `apply_patch_call_output` event for each `call_id`, with a `status` and optional `output` string.
+   - Keep `tools=[{"type": "apply_patch"}]` so the model can continue editing if needed.
+5. **Let the model continue or explain changes**
+   - The model may issue more `apply_patch_call` operations, or
+   - Provide a human-facing explanation of what it changed and why.
+
+## Example: Renaming a function with Apply Patch Tool
+
+**Step 1: Ask the model to plan and emit patches**
+
+Ask the model to plan and emit patches
+
+```javascript
+import OpenAI from "openai";
+// Application-owned helper; see "Implementing the patch harness" in the guide.
+// This demo only applies exact updates to the two in-memory files below.
+import { applyOperation } from "../../support/apply-patch.mjs";
+
+const client = new OpenAI();
+const files = {
+  "lib/fib.py": `def fib(n):
+    if n <= 1:
+        return n
+    return fib(n - 1) + fib(n - 2)
+`,
+  "run.py": `from lib.fib import fib
+
+print(fib(42))
+`,
+};
+const fileContext = `The user has the following files:
+<BEGIN_FILES>
+${Object.entries(files)
+  .map(([path, content]) => `===== ${path}\n${content}`)
+  .join("\n")}
+<END_FILES>
+
+Help me rename the fib() function to fibonacci().`;
+
+let response = await client.responses.create({
+  model: "gpt-6-astra",
+  input: fileContext,
+  tools: [{ type: "apply_patch" }],
+});
+
+let patchCalls = response.output.filter(
+  (item) => item.type === "apply_patch_call"
+);
+```
+
+```python
+from openai import OpenAI
+
+client = OpenAI()
+
+# For brevity, we are including file context in the example input.
+# Most agentic use cases should instead equip the model with tools
+# for exploring file system state.
+RESPONSE_INPUT = """
+The user has the following files:
+<BEGIN_FILES>
+===== lib/fib.py
+def fib(n):
+    if n <= 1:
+        return n
+    return fib(n-1) + fib(n-2)
+
+===== run.py
+from lib.fib import fib
+
+def main():
+  print(fib(42))
+<END_FILES>
+
+You are a helpful coding assistant that should assist the user with whatever they
+ask.
+
+User query:
+Help me rename the fib() function to fibonacci()
+"""
+
+response = client.responses.create(
+    model="gpt-6-astra",
+    input=RESPONSE_INPUT,
+    tools=[{"type": "apply_patch"}],
+)
+
+# response.output may contain multiple apply_patch_call entries, e.g.:
+# - update lib/fib.py
+# - update run.py
+patch_calls = [
+    item.model_dump() for item in response.output if item.type == "apply_patch_call"
+]
+```
+
+```go
+response, err := client.Responses.New(ctx, responses.ResponseNewParams{
+	Model: "gpt-6-astra",
+	Input: responses.ResponseNewParamsInputUnion{OfString: openai.String(responseInput)},
+	Tools: []responses.ToolUnionParam{{OfApplyPatch: &responses.ApplyPatchToolParam{}}},
+})
+if err != nil {
+	return err
+}
+```
+
+```java
+import com.openai.client.OpenAIClient;
+import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.models.responses.ApplyPatchTool;
+import com.openai.models.responses.ResponseCreateParams;
+
+ResponseCreateParams params =
+    ResponseCreateParams.builder()
+        .model("gpt-6-astra")
+        .input(
+            "Rename fib() to fibonacci() in lib/fib.py and update run.py to use the new name.")
+        .addTool(ApplyPatchTool.builder().build())
+        .build();
+
+client.responses().create(params).output().stream()
+    .flatMap(item -> item.applyPatchCall().stream())
+    .forEach(System.out::println);
+```
+
+```ruby
+require "openai"
+
+client = OpenAI::Client.new
+files = {
+  "lib/fib.py" => "def fib(n):\n    if n <= 1:\n        return n\n    return fib(n-1) + fib(n-2)\n",
+  "run.py" => "from lib.fib import fib\n\ndef main():\n  print(fib(42))\n"
+}
+context = files.map { |path, content| "===== #{path}\n#{content}" }.join
+response = client.responses.create(
+  model: "gpt-6-astra",
+  input: "The user has the following files:\n<BEGIN_FILES>\n#{context}<END_FILES>\nHelp me rename fib() to fibonacci() in both existing files.",
+  tools: [{ type: :apply_patch }]
+)
+```
+
+
+**Example `apply_patch_call` object**
+
+Example apply_patch_call object
+
+```json
+{
+    "id": "apc_08f3d96c87a585390069118b594f7481a088b16cda7d9415fe",
+    "type": "apply_patch_call",
+    "status": "completed",
+    "call_id": "call_Rjsqzz96C5xzPb0jUWJFRTNW",
+    "operation": {
+        "type": "update_file",
+        "diff": "
+@@
+-def fib(n):
++def fibonacci(n):
+    if n <= 1:
+        return n
+-    return fib(n-1) + fib(n-2)                                                  +    return fibonacci(n-1) + fibonacci(n-2),
+",
+        "path": "lib/fib.py"
+    }
+}
+```
+
+
+**Step 2: Apply the patch and send results back**
+
+Apply the patch and return results
+
+```javascript
+for (let turn = 0; patchCalls.length > 0; turn++) {
+  if (turn === 8) throw new Error("Patch workflow exceeded eight tool turns.");
+  const results = patchCalls.map((call) => {
+    const { success, output } = applyOperation(files, call.operation);
+
+    return {
+      type: "apply_patch_call_output",
+      call_id: call.call_id,
+      status: success ? "completed" : "failed",
+      output,
+    };
+  });
+
+  response = await client.responses.create({
+    model: "gpt-6-astra",
+    previous_response_id: response.id,
+    input: results,
+    tools: [{ type: "apply_patch" }],
+  });
+  patchCalls = response.output.filter(
+    (item) => item.type === "apply_patch_call"
+  );
+}
+
+console.log(response.output_text);
+for (const [path, content] of Object.entries(files)) {
+  process.stdout.write(`===== ${path}\n${content}`);
+}
+```
+
+```python
+from apply_patch_harness import apply_operation  # your implementation
+
+for turn in range(9):
+    if response.status != "completed":
+        raise RuntimeError(f"Patch response ended with status {response.status}")
+    if not patch_calls:
+        break
+    if turn == 8:
+        raise RuntimeError("Patch workflow exceeded eight tool turns")
+
+    results = []
+    for call in patch_calls:
+        success, log_output = apply_operation(call["operation"])
+        results.append(
+            {
+                "type": "apply_patch_call_output",
+                "call_id": call["call_id"],
+                "status": "completed" if success else "failed",
+                "output": log_output,
+            }
+        )
+
+    response = client.responses.create(
+        model="gpt-6-astra",
+        previous_response_id=response.id,
+        input=results,
+        tools=[{"type": "apply_patch"}],
+    )
+    patch_calls = [
+        item.model_dump() for item in response.output if item.type == "apply_patch_call"
+    ]
+
+print(response.output_text)
+```
+
+```go
+for turn := 0; ; turn++ {
+	if response.Status != responses.ResponseStatusCompleted {
+		return fmt.Errorf("response ended with status %s", response.Status)
+	}
+	patchCalls := make([]responses.ResponseOutputItemUnion, 0)
+	for _, item := range response.Output {
+		if item.Type == "apply_patch_call" {
+			patchCalls = append(patchCalls, item)
+		}
+	}
+	if len(patchCalls) == 0 {
+		fmt.Println(response.OutputText())
+		return nil
+	}
+	if turn == 8 {
+		return fmt.Errorf("patch workflow exceeded eight tool turns")
+	}
+	results := make(responses.ResponseInputParam, 0, len(patchCalls))
+	for _, call := range patchCalls {
+		success, logOutput := applyOperation(files, call.Operation)
+		status := "completed"
+		if !success {
+			status = "failed"
+		}
+		result := responses.ResponseInputItemParamOfApplyPatchCallOutput(call.CallID, status)
+		result.OfApplyPatchCallOutput.Output = openai.String(logOutput)
+		results = append(results, result)
+	}
+	response, err = client.Responses.New(ctx, responses.ResponseNewParams{
+		Model:              "gpt-6-astra",
+		PreviousResponseID: openai.String(response.ID),
+		Input:              responses.ResponseNewParamsInputUnion{OfInputItemList: results},
+		Tools:              []responses.ToolUnionParam{{OfApplyPatch: &responses.ApplyPatchToolParam{}}},
+	})
+	if err != nil {
+		return err
+	}
+}
+```
+
+```java
+import com.openai.client.OpenAIClient;
+import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.models.responses.ApplyPatchTool;
+import com.openai.models.responses.ResponseCreateParams;
+import com.openai.models.responses.ResponseInputItem;
+import java.util.List;
+
+ResponseCreateParams params =
+    ResponseCreateParams.builder()
+        .model("gpt-6-astra")
+        .inputOfResponse(
+            List.of(
+                ResponseInputItem.ofApplyPatchCallOutput(
+                    ResponseInputItem.ApplyPatchCallOutput.builder()
+                        .callId(System.getenv("OPENAI_EXAMPLE_APPLY_PATCH_CALL_ID"))
+                        .status(ResponseInputItem.ApplyPatchCallOutput.Status.COMPLETED)
+                        .output("Patch applied successfully.")
+                        .build())))
+        .previousResponseId(System.getenv("OPENAI_EXAMPLE_PREVIOUS_RESPONSE_ID"))
+        .addTool(ApplyPatchTool.builder().build())
+        .build();
+
+client.responses().create(params).output().stream()
+    .flatMap(item -> item.message().stream())
+    .flatMap(message -> message.content().stream())
+    .flatMap(content -> content.outputText().stream())
+    .forEach(text -> System.out.println(text.text()));
+```
+
+```ruby
+9.times do |turn|
+  raise "Response ended with status #{response.status}" unless response.status == OpenAI::Responses::ResponseStatus::COMPLETED
+
+  patch_calls = response.output.grep(OpenAI::Models::Responses::ResponseApplyPatchToolCall)
+  if patch_calls.empty?
+    puts(response.output_text)
+    break
+  end
+  raise "Patch workflow exceeded eight tool turns" if turn == 8
+
+  # apply_operation is application-owned; see "Implementing the patch harness" in the guide.
+  results = patch_calls.map do |call|
+    success, output = apply_operation(files, call.operation)
+    {
+      type: :apply_patch_call_output,
+      call_id: call.call_id,
+      status: success ? :completed : :failed,
+      output: output
+    }
+  end
+  response = client.responses.create(
+    model: "gpt-6-astra",
+    previous_response_id: response.id,
+    input: results,
+    tools: [{ type: :apply_patch }]
+  )
+end
+files.each { |path, content| print("===== #{path}\n#{content}") }
+```
+
+
+If a patch fails (for example, file not found), set `status: "failed"` and include a helpful `output` string so the model can recover:
+
+Report a failed apply_patch call
+
+```json
+{
+  "type": "apply_patch_call_output",
+  "call_id": "call_cNWm41dB3RyQcLNOVTIPBWZU",
+  "status": "failed",
+  "output": "Could not apply patch to lib/foo.py — file not found on disk"
+}
+```
+
+
+## Apply patch operations
+
+| Operation Type | Purpose                            | Payload                                                          |
+| -------------- | ---------------------------------- | ---------------------------------------------------------------- |
+| `create_file`  | Create a new file at `path`.       | `diff` is a V4A diff representing the full file contents.        |
+| `update_file`  | Modify an existing file at `path`. | `diff` is a V4A diff with additions, deletions, or replacements. |
+| `delete_file`  | Remove a file at `path`.           | No `diff`; delete the file entirely.                             |
+
+Your patch harness is responsible for interpreting the V4A diff format and applying changes. For reference implementations, see the [Python Agents SDK](https://github.com/openai/openai-agents-python/blob/main/src/agents/apply_diff.py) or [TypeScript Agents SDK](https://github.com/openai/openai-agents-js/blob/main/packages/agents-core/src/utils/applyDiff.ts) code.
+
+## Implementing the patch harness
+
+When using the `apply_patch` tool, you don’t provide an input schema; the model knows how to construct `operation` objects. Your job is to:
+
+1. **Parse operations from the Response**
+   - Scan the Response for items with `type: "apply_patch_call"`.
+   - For each call, inspect `operation.type`, `operation.path`, and any potential `diff`.
+2. **Apply file operations**
+   - For `create_file` and `update_file`, apply the V4A diff to the file system or in-memory workspace.
+   - For `delete_file`, remove the file at `path`.
+   - Record whether each operation succeeded and any logs or error messages.
+3. **Return `apply_patch_call_output` events**
+   - For each `call_id`, emit exactly one `apply_patch_call_output` event with:
+     - `status: "completed"` if the operation was applied successfully.
+     - `status: "failed"` if you encountered an error (include a short human-readable `output` string).
+
+### Safety and robustness
+
+- **Path validation**: Prevent directory traversal and restrict edits to allowed directories.
+- **Backups**: Consider backing up files (or working in a scratch copy) before applying patches.
+- **Error handling**: Always return a `failed` status with an informative `output` string when patches cannot be applied.
+- **Atomicity**: Decide whether you want “all-or-nothing” semantics (rollback if any patch fails) or per-file success/failure.
+
+## Use the apply patch tool with the Agents SDK
+
+Alternatively, you can use the [Agents SDK](https://developers.openai.com/api/docs/guides/tools#usage-in-the-agents-sdk) to use the apply patch tool. You'll still have to implement the harness that handles the actual file operations but you can use the `applyDiff` function to handle the diff processing.
+
+Use the apply patch tool with the Agents SDK
+
+```javascript
+import {
+  mkdirSync,
+  realpathSync,
+  lstatSync,
+  readFileSync,
+  writeFileSync,
+  unlinkSync,
+} from "node:fs";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { applyDiff, Agent, run, applyPatchTool } from "@openai/agents";
+
+class WorkspaceEditor {
+  constructor(root = "workspace") {
+    mkdirSync(root, { recursive: true });
+    this.root = realpathSync(root);
+  }
+
+  path(name) {
+    const target = resolve(this.root, name);
+    const relativePath = relative(this.root, target);
+    if (
+      !relativePath ||
+      isAbsolute(relativePath) ||
+      relativePath === ".." ||
+      relativePath.startsWith(`..${sep}`)
+    ) {
+      throw new Error("Patch paths must stay inside the workspace");
+    }
+    let current = this.root;
+    for (const part of relativePath.split(sep)) {
+      current = join(current, part);
+      if (lstatSync(current, { throwIfNoEntry: false })?.isSymbolicLink()) {
+        throw new Error("Patch paths must not traverse symbolic links");
+      }
+    }
+    return target;
+  }
+
+  async createFile(operation) {
+    const path = this.path(operation.path);
+    const content = applyDiff("", operation.diff, "create");
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, content, { encoding: "utf8", flag: "wx" });
+    return { status: "completed", output: `Created ${operation.path}` };
+  }
+
+  async updateFile(operation) {
+    const path = this.path(operation.path);
+    const content = applyDiff(readFileSync(path, "utf8"), operation.diff);
+    writeFileSync(path, content, "utf8");
+    return { status: "completed", output: `Updated ${operation.path}` };
+  }
+
+  async deleteFile(operation) {
+    unlinkSync(this.path(operation.path));
+    return { status: "completed", output: `Deleted ${operation.path}` };
+  }
+}
+
+const editor = new WorkspaceEditor();
+
+const agent = new Agent({
+  name: "Patch Assistant",
+  model: "gpt-6-astra",
+  instructions:
+    "Use apply_patch to edit files in the workspace. Supply paths relative to that workspace.",
+  tools: [
+    applyPatchTool({
+      editor,
+      // could also be a function for you to determine if approval is needed
+      needsApproval: true,
+      onApproval: async (_ctx, _approvalItem) => {
+        // create your own approval logic
+        return { approve: true };
+      },
+    }),
+  ],
+});
+
+const result = await run(
+  agent,
+  "Create tasks.md with a shopping checklist of 5 entries."
+);
+
+console.log(`\nFinal response:\n${result.finalOutput}`);
+```
+
+```python
+from pathlib import Path
+
+from agents import Agent, ApplyPatchTool, Runner, apply_diff
+
+
+class WorkspaceEditor:
+    def __init__(self, root="workspace"):
+        self.root = Path(root).resolve()
+        self.root.mkdir(parents=True, exist_ok=True)
+
+    def _path(self, name):
+        path = self.root / name
+        resolved = path.resolve()
+        if resolved == self.root or not resolved.is_relative_to(self.root):
+            raise ValueError("Patch paths must stay inside the workspace")
+        return path
+
+    async def create_file(self, operation):
+        content = apply_diff("", operation.diff, mode="create")
+        path = self._path(operation.path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("x", encoding="utf-8") as file:
+            file.write(content)
+        return {"status": "completed", "output": f"Created {operation.path}"}
+
+    async def update_file(self, operation):
+        path = self._path(operation.path)
+        content = apply_diff(path.read_text(encoding="utf-8"), operation.diff)
+        path.write_text(content, encoding="utf-8")
+        return {"status": "completed", "output": f"Updated {operation.path}"}
+
+    async def delete_file(self, operation):
+        self._path(operation.path).unlink()
+        return {"status": "completed", "output": f"Deleted {operation.path}"}
+
+
+editor = WorkspaceEditor()
+
+agent = Agent(
+    name="Patch Assistant",
+    model="gpt-6-astra",
+    instructions="Use apply_patch to edit files in the workspace. Supply paths relative to that workspace.",
+    tools=[
+        ApplyPatchTool(
+            editor=editor,
+            # could also be a function for you to determine if approval is needed
+            needs_approval=True,
+            # Implement your own approval logic
+            on_approval=lambda _ctx, _approval_item: {"approve": True},
+        ),
+    ],
+)
+
+
+async def main():
+    result = await Runner.run(
+        agent,
+        input="Create tasks.md with a shopping checklist of 5 entries.",
+    )
+
+    print(f"\nFinal response:\n{result.final_output}")
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(main())
+```
+
+
+You can find full working examples on GitHub.
+
+[Apply patch tool example - TypeScript](https://github.com/openai/openai-agents-js/blob/main/examples/tools/applyPatch.ts)
+
+Example of how to use the apply patch tool with the Agents SDK in TypeScript
+
+
+
+[Apply patch tool example - Python](https://github.com/openai/openai-agents-python/blob/main/examples/tools/apply_patch.py)
+
+Example of how to use the apply patch tool with the Agents SDK in Python
+
+
+
+## Handling common errors
+
+Use `status: "failed"` plus a clear `output` message to help the model recover.
+
+
+
+File not found
+
+    File not found error
+
+```json
+{
+  "type": "apply_patch_call_output",
+  "call_id": "call_abc",
+  "status": "failed",
+  "output": "Error: File not found at path 'lib/baz.py'"
+}
+```
+
+  
+
+  
+
+    
+Patch conflict
+
+    Patch conflict error
+
+```json
+{
+  "type": "apply_patch_call_output",
+  "call_id": "call_abc",
+  "status": "failed",
+  "output": "Error: Invalid Context:\n@@ def fib(n):"
+}
+```
+
+
+
+The model can then adjust future diffs (for example, by re-reading a file in your prompt or simplifying a change) based on these error messages.
+
+## Best practices
+
+- **Give clear file context**
+  - When you call the Responses API, include either an inline snapshot of your files (as in the example), or give the model tools for exploring your filesystem (like the `shell` tool).
+- **Consider using with the `shell` tool**
+  - When used in conjunction with the `shell` tool, the model can explore file system directories, read files, and grep for keywords, enabling agentic file discovery and editing.
+- **Encourage small, focused diffs**
+  - In your system instructions, nudge the model toward minimal, targeted edits rather than huge rewrites.
+- **Make sure changes apply cleanly**
+  - After a series of patches, run your tests or linters and share failures back in the next `input` so the model can fix them.
+
+## Usage notes
+
+<table>
+<tbody>
+
+<tr>
+  <th>API Availability</th>
+  <th>Supported models</th>
+</tr>
+
+<tr>
+  <td>
+    
+
+      [Responses](https://developers.openai.com/api/reference/resources/responses)
+    
+
+    
+
+      [Chat Completions](https://developers.openai.com/api/reference/resources/chat)
+    
+
+    
+
+      [Assistants](https://developers.openai.com/api/reference/resources/beta/subresources/assistants)
+    
+
+  </td>
+  <td style={{ maxWidth: "150px" }}>
+    - [`gpt-5.2`](https://developers.openai.com/api/docs/models/gpt-5.2)
+- [`gpt-5.4`](https://developers.openai.com/api/docs/models/gpt-5.4)
+- [`gpt-5.4-mini`](https://developers.openai.com/api/docs/models/gpt-5.4-mini)
+- [`gpt-5.4-pro`](https://developers.openai.com/api/docs/models/gpt-5.4-pro)
+- [`gpt-5.5`](https://developers.openai.com/api/docs/models/gpt-5.5)
+- [`gpt-5.6-cyber`](https://developers.openai.com/api/docs/models/gpt-5.6-cyber)
+- [`gpt-5.6-luna`](https://developers.openai.com/api/docs/models/gpt-5.6-luna)
+- [`gpt-5.6-sol`](https://developers.openai.com/api/docs/models/gpt-5.6-sol)
+- [`gpt-5.6-terra`](https://developers.openai.com/api/docs/models/gpt-5.6-terra)
+- [`gpt-6-astra`](https://developers.openai.com/api/docs/models/gpt-6-astra)
+- [`gpt-6-cyber`](https://developers.openai.com/api/docs/models/gpt-6-cyber)
+- [`gpt-6-luna`](https://developers.openai.com/api/docs/models/gpt-6-luna)
+- [`gpt-6-sol`](https://developers.openai.com/api/docs/models/gpt-6-sol)
+- [`gpt-6.1-sol`](https://developers.openai.com/api/docs/models/gpt-6.1-sol)
+- [`gpt-6.1-terra`](https://developers.openai.com/api/docs/models/gpt-6.1-terra)
+  </td>
+</tr>
+
+</tbody>
+</table>

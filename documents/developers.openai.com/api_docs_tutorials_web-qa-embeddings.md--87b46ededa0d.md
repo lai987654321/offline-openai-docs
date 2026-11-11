@@ -1,0 +1,518 @@
+# Web QA with embeddings
+
+> For the complete documentation index, see [llms.txt](/llms.txt). Markdown versions of documentation pages are available by appending `.md` to the page URL.
+
+This tutorial walks through an example of crawling a website (in this example, the OpenAI website), turning the crawled pages into embeddings using the [Embeddings API](https://developers.openai.com/api/docs/guides/embeddings), and then creating a basic search functionality that allows a user to ask questions about the embedded information. This is intended to be a starting point for more sophisticated applications that make use of custom knowledge bases.
+
+# Getting started
+
+Some basic knowledge of Python and GitHub is helpful for this tutorial. Before diving in, make sure to [set up an OpenAI API key](https://developers.openai.com/api/reference/overview) and walk through the [quickstart tutorial](https://developers.openai.com/api/docs/quickstart). This will give a good intuition on how to use the API to its full potential.
+
+Use Python 3.11 or later. Create a virtual environment, install the packages used in the examples, and set `OPENAI_API_KEY` as described in the [quickstart](https://developers.openai.com/api/docs/quickstart).
+
+```bash
+python -m venv env
+source env/bin/activate
+python -m pip install openai pandas numpy requests beautifulsoup4 tiktoken matplotlib
+```
+
+Copy the examples into a Python file or notebook in the order shown and run them in the same working directory.
+
+## Setting up a web crawler
+
+Choose a website you can crawl. Expand the steps below to collect page text for the embeddings.
+
+
+
+### Learn how to build a web crawler
+
+
+
+
+
+  
+
+    Acquiring data in text form is the first step to use embeddings. This
+      tutorial creates a new set of data by crawling the OpenAI website, a
+      technique that you can also use for your own company or personal website.
+    
+
+  
+
+
+
+
+While this crawler is written from scratch, open source packages like [`Scrapy`](https://github.com/scrapy/scrapy) can also help with these operations.
+
+This crawler will start from the root URL passed in at the bottom of the code below, visit each page, find additional links, and visit those pages as well (as long as they have the same root domain). To begin, import the required packages, set the starting URL, and define a subclass of `HTMLParser`.
+
+```python
+import requests
+import re
+import urllib.request
+from bs4 import BeautifulSoup
+from collections import deque
+from html.parser import HTMLParser
+from urllib.parse import urldefrag, urljoin, urlparse
+import os
+
+# Regex pattern to match a URL
+HTTP_URL_PATTERN = r"^http[s]*://.+"
+
+domain = "openai.com"  # <- put your domain to be crawled
+full_url = "https://openai.com/"  # <- put your domain to be crawled with https or http
+
+
+# Create a class to parse the HTML and get the hyperlinks
+class HyperlinkParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        # Create a list to store the hyperlinks
+        self.hyperlinks = []
+
+    # Override the HTMLParser's handle_starttag method to get the hyperlinks
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+
+        # If the tag is an anchor tag and it has an href attribute, add the href attribute to the list of hyperlinks
+        if tag == "a" and "href" in attrs:
+            self.hyperlinks.append(attrs["href"])
+```
+
+
+The next function takes a URL as an argument, opens the URL, and reads the HTML content. Then, it returns all the hyperlinks found on that page.
+
+```python
+# Function to get the hyperlinks from a URL
+def get_hyperlinks(url):
+    # Try to open the URL and read the HTML
+    try:
+        with urllib.request.urlopen(url, timeout=30) as response:
+            # If the response is not HTML, return an empty list
+            if not response.info().get("Content-Type", "").startswith("text/html"):
+                return []
+
+            # Decode the HTML
+            html = response.read().decode("utf-8")
+    except Exception as error:
+        print(error)
+        return []
+
+    # Create the HTML Parser and then Parse the HTML to get hyperlinks
+    parser = HyperlinkParser()
+    parser.feed(html)
+
+    return parser.hyperlinks
+```
+
+
+The goal is to crawl through and index only the content that lives under the OpenAI domain. For this purpose, a function that calls the `get_hyperlinks` function but filters out any URLs that are not part of the specified domain is needed.
+
+```python
+# Function to get the hyperlinks from a URL that are within the same domain
+def get_domain_hyperlinks(local_domain, url):
+    links = set()
+    for link in get_hyperlinks(url):
+        if not link or link.startswith("#"):
+            continue
+        candidate, _ = urldefrag(urljoin(url, link))
+        parsed = urlparse(candidate)
+        if parsed.scheme in {"http", "https"} and parsed.netloc == local_domain:
+            links.add(candidate)
+    return list(links)
+```
+
+
+The `crawl` function is the final step in the web scraping task setup. It keeps track of the visited URLs to avoid repeating the same page, which might be linked across multiple pages on a site. It also extracts the raw text from a page without the HTML tags, and writes the text content into a local .txt file specific to the page.
+
+```python
+def crawl(url):
+    # Parse the URL and get the domain
+    parsed = urlparse(url)
+    local_domain = parsed.netloc
+    url = parsed._replace(path=parsed.path or "/").geturl()
+
+    # Create a queue to store the URLs to crawl
+    queue = deque([url])
+
+    # Create a set to store the URLs that have already been seen (no duplicates)
+    seen = set([url])
+
+    # Create a directory to store the text files
+    if not os.path.exists("text/"):
+        os.mkdir("text/")
+
+    if not os.path.exists("text/" + local_domain + "/"):
+        os.mkdir("text/" + local_domain + "/")
+
+    # Create a directory to store the csv files
+    if not os.path.exists("processed"):
+        os.mkdir("processed")
+
+    # While the queue is not empty, continue crawling
+    while queue:
+        # Get the next URL from the queue
+        url = queue.pop()
+        print(url)  # for debugging and to see the progress
+
+        # Save text from the url to a <url>.txt file
+        page_name = (local_domain + urlparse(url).path).replace("/", "_")
+        with open(
+            "text/" + local_domain + "/" + page_name + ".txt",
+            "w",
+            encoding="UTF-8",
+        ) as f:
+            # Get the text from the URL using BeautifulSoup
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, "html.parser")
+
+            # Get the text but remove the tags
+            text = soup.get_text()
+
+            # If the crawler gets to a page that requires JavaScript, it will stop the crawl
+            if "You need to enable JavaScript to run this app." in text:
+                print(
+                    "Unable to parse page " + url + " due to JavaScript being required"
+                )
+
+            # Otherwise, write the text to the file in the text directory
+            f.write(text)
+
+        # Get the hyperlinks from the URL and add them to the queue
+        for link in get_domain_hyperlinks(local_domain, url):
+            if link not in seen:
+                queue.append(link)
+                seen.add(link)
+
+
+crawl(full_url)
+```
+
+
+The last line of the above example runs the crawler which goes through all the accessible links and turns those pages into text files. This will take a few minutes to run depending on the size and complexity of your site.
+
+
+
+
+
+## Building an embeddings index
+
+
+
+  
+
+    CSV is a common format for storing embeddings. You can use this format
+      with Python by converting the raw text files (which are in the text
+      directory) into Pandas data frames. Pandas is a popular open source
+      library that helps you work with tabular data (data stored in rows and
+      columns).
+    
+
+    
+
+      Blank empty lines can clutter the text files and make them harder to
+      process. A function can remove those lines and tidy up the files.
+    
+
+  
+
+
+
+
+```python
+def remove_newlines(serie):
+    serie = serie.str.replace("\n", " ")
+    serie = serie.str.replace("\\n", " ")
+    serie = serie.str.replace("  ", " ")
+    serie = serie.str.replace("  ", " ")
+    return serie
+```
+
+
+Converting the text to CSV requires looping through the text files in the text directory created earlier. After opening each file, remove the extra spacing and append the modified text to a list. Then, add the text with the new lines removed to an empty Pandas data frame and write the data frame to a CSV file.
+
+Extra spacing and new lines can clutter the text and complicate the embeddings
+  process. The code used here helps to remove some of them but you may find 3rd
+  party libraries or other methods useful to get rid of more unnecessary
+  characters.
+
+```python
+from pathlib import Path
+
+import pandas as pd
+
+# Create a list to store the text files
+texts = []
+
+# Get all the text files in the text directory
+for file in os.listdir("text/" + domain + "/"):
+    # Open the file and read the text
+    with open("text/" + domain + "/" + file, "r", encoding="UTF-8") as f:
+        text = f.read()
+
+        page_name = Path(file).stem
+        domain_prefix = f"{domain}_"
+        if page_name.startswith(domain_prefix):
+            page_name = page_name[len(domain_prefix) :]
+        elif page_name == domain:
+            page_name = "index"
+
+        # Replace -, _, and #update with spaces.
+        texts.append(
+            (
+                page_name.replace("-", " ").replace("_", " ").replace("#update", ""),
+                text,
+            )
+        )
+
+# Create a dataframe from the list of texts
+df = pd.DataFrame(texts, columns=["fname", "text"])
+
+# Set the text column to be the raw text with the newlines removed
+df["text"] = df.fname + ". " + remove_newlines(df.text)
+df.to_csv("processed/scraped.csv")
+df.head()
+```
+
+
+The next step is tokenization after saving the raw text into a CSV file. This process splits the input text into tokens by breaking down the sentences and words. A visual demonstration of this can be seen by [checking out our tokenizer](https://platform.openai.com/tokenizer) in the docs.
+
+> A helpful rule of thumb is that one token generally corresponds to ~4 characters of text for common English text. This translates to roughly ¾ of a word (so 100 tokens ~= 75 words).
+
+The API has a limit on the maximum number of input tokens for embeddings. To stay below the limit, the text in the CSV file needs to be broken down into multiple rows. The existing length of each row will be recorded first to identify which rows need to be split.
+
+```python
+import tiktoken
+
+# Load the cl100k_base tokenizer which is designed to work with the ada-002 model
+tokenizer = tiktoken.get_encoding("cl100k_base")
+
+df = pd.read_csv("processed/scraped.csv", index_col=0)
+df.columns = ["title", "text"]
+
+# Tokenize the text and save the number of tokens to a new column
+df["n_tokens"] = df.text.apply(lambda x: len(tokenizer.encode(x)))
+
+# Visualize the distribution of the number of tokens per row using a histogram
+df.n_tokens.hist()
+```
+
+
+
+
+  
+
+    <img src="https://cdn.openai.com/API/docs/images/tutorials/web-qa/embeddings-initial-histrogram.png"
+      alt="Embeddings histogram"
+      width="553"
+      height="413"
+    />
+  
+
+
+
+
+Split longer pages into chunks that fit within the [embedding model’s input limit](https://developers.openai.com/api/docs/models/text-embedding-3-small).
+
+```python
+max_tokens = 500
+
+
+# Function to split the text into chunks of a maximum number of tokens
+def split_into_many(text, max_tokens=max_tokens):
+    if max_tokens < 1:
+        raise ValueError("max_tokens must be positive.")
+    if not text.strip():
+        return []
+
+    sentences = text.split(". ")
+    chunks = []
+    chunk = ""
+    for index, sentence in enumerate(sentences):
+        if index < len(sentences) - 1:
+            sentence += "."
+        # Do not silently discard a sentence that needs finer-grained splitting.
+        if len(tokenizer.encode(sentence)) > max_tokens:
+            raise ValueError("A sentence exceeds max_tokens; split it before chunking.")
+
+        candidate = f"{chunk} {sentence}" if chunk else sentence
+        if len(tokenizer.encode(candidate)) > max_tokens:
+            chunks.append(chunk)
+            chunk = sentence
+        else:
+            chunk = candidate
+
+    if chunk:
+        chunks.append(chunk)
+    return chunks
+
+
+shortened = []
+
+# Loop through the dataframe
+for row in df.iterrows():
+    # If the text is None, go to the next row
+    if row[1]["text"] is None:
+        continue
+
+    # If the number of tokens is greater than the max number of tokens, split the text into chunks
+    if row[1]["n_tokens"] > max_tokens:
+        shortened += split_into_many(row[1]["text"])
+
+    # Otherwise, add the text to the list of shortened texts
+    else:
+        shortened.append(row[1]["text"])
+```
+
+
+Visualizing the updated histogram again can help to confirm if the rows were successfully split into shortened sections.
+
+```python
+df = pd.DataFrame(shortened, columns=["text"])
+df["n_tokens"] = df.text.apply(lambda x: len(tokenizer.encode(x)))
+df.n_tokens.hist()
+```
+
+
+
+
+  
+
+    <img src="https://cdn.openai.com/API/docs/images/tutorials/web-qa/embeddings-tokenized-output.png"
+      alt="Embeddings tokenized output"
+      width="552"
+      height="418"
+    />
+  
+
+
+
+
+Create an embedding for each chunk with `text-embedding-3-small`. Use the same model for query embeddings. If you change embedding models, rebuild the index before searching it.
+
+```python
+from openai import OpenAI
+
+client = OpenAI()
+
+df["embeddings"] = df.text.apply(
+    lambda x: client.embeddings.create(
+        input=x, model="text-embedding-3-small"
+    ).data[0].embedding
+)
+
+df.to_csv("processed/embeddings.csv")
+df.head()
+```
+
+
+This should take about 3-5 minutes but after you will have your embeddings ready to use!
+
+## Building a question answer system with your embeddings
+
+
+
+  
+
+    Embed the user's question and compare it with the indexed chunks to find
+      the most relevant text. Send that text and the question to the Responses
+      API to generate an answer.
+    
+
+  
+
+
+
+
+---
+
+Turning the embeddings into a NumPy array is the first step, which will provide more flexibility in how to use it given the many functions available that operate on NumPy arrays. It will also flatten the dimension to 1-D, which is the required format for many subsequent operations.
+
+```python
+from ast import literal_eval
+import numpy as np
+
+df = pd.read_csv("processed/embeddings.csv", index_col=0)
+df["embeddings"] = df["embeddings"].apply(literal_eval).apply(np.array)
+
+df.head()
+```
+
+
+Embed the question using the same model you used to build the index. The example computes cosine distances with NumPy and retrieves the closest text chunks.
+
+```python
+def distances_from_embeddings(query, embeddings, distance_metric="cosine"):
+    if distance_metric != "cosine":
+        raise ValueError("This example supports cosine distance only.")
+    return [
+        1 - float(np.dot(query, item) / (np.linalg.norm(query) * np.linalg.norm(item)))
+        for item in embeddings
+    ]
+
+def create_context(question, df, max_len=1800):
+    """
+    Create a context for a question by finding the most similar context from the dataframe
+    """
+
+    # Get the embeddings for the question
+    q_embeddings = (
+        client.embeddings.create(input=question, model="text-embedding-3-small")
+        .data[0]
+        .embedding
+    )
+
+    # Get the distances from the embeddings
+    df["distances"] = distances_from_embeddings(
+        q_embeddings, df["embeddings"].values, distance_metric="cosine"
+    )
+
+    returns = []
+    cur_len = 0
+
+    # Sort by distance and add the text to the context until the context is too long
+    for _, row in df.sort_values("distances", ascending=True).iterrows():
+        # Add the length of the text to the current length
+        cur_len += row["n_tokens"] + 4
+
+        # If the context is too long, break
+        if cur_len > max_len:
+            break
+
+        # Else add it to the text that is being returned
+        returns.append(row["text"])
+
+    # Return the context
+    return "\n\n###\n\n".join(returns)
+```
+
+
+The `max_len` argument limits how many tokens of retrieved text to include. Pass that text and the question to the [Responses API](https://developers.openai.com/api/reference/resources/responses/methods/create) using `gpt-6-luna`. Read the answer from `response.output_text`.
+
+```python
+def answer_question(df, question, max_len=1800):
+    context = create_context(question, df, max_len=max_len)
+    response = client.responses.create(
+        model="gpt-6-luna",
+        instructions=(
+            "Answer the question using only the supplied context. "
+            "If the context doesn't answer the question, say \"I don't know.\""
+        ),
+        input=f"Context: {context}\n\nQuestion: {question}",
+    )
+    return response.output_text.strip()
+```
+
+
+Ask a question the indexed pages can answer, then ask one they cannot. If the index contains a description of ChatGPT, the first call should answer from it. The second should return “I don't know.”
+
+```python
+print(answer_question(df, "What is ChatGPT?"))
+print(answer_question(df, "What did I have for breakfast today?"))
+```
+
+
+If the system is not able to answer a question that is expected, it is worth searching through the raw text files to see if the information that is expected to be known actually ended up being embedded or not. The crawling process that was done initially was setup to skip sites outside the original domain that was provided, so it might not have that knowledge if there was a subdomain setup.
+
+Currently, the data frame is being passed in each time to answer a question. For more production workflows, a [vector database solution](https://developers.openai.com/api/docs/guides/embeddings#how-can-i-retrieve-k-nearest-embedding-vectors-quickly) should be used instead of storing the embeddings in a CSV file, but the current approach is a great option for prototyping.

@@ -1,0 +1,1215 @@
+# WebSocket Mode
+
+> For the complete documentation index, see [llms.txt](/llms.txt). Markdown versions of documentation pages are available by appending `.md` to the page URL.
+
+The Responses API supports a WebSocket mode for long-running, tool-call-heavy workflows. Beyond lowering latency, `stream_id` enables WebSocket multiplexing: one persistent connection to `/v1/responses` can run parallel conversations and fork an existing conversation onto a new stream. Continue each turn by sending only new input items plus `previous_response_id`.
+
+WebSocket mode is compatible with both Zero Data Retention (ZDR) and `store=false`.
+
+## Why use WebSocket mode
+
+WebSocket mode is most useful when a workflow involves many model-tool round trips (for example, agentic coding or orchestration loops with repeated tool calls).
+
+Because the connection stays open and each turn sends only incremental input, WebSocket mode reduces per-turn continuation overhead and improves end-to-end latency across long chains. For rollouts with 20+ tool calls, we have seen up to roughly 40% faster end-to-end execution.
+
+## Connect and create responses
+
+Install the WebSocket dependencies with `pip install "openai[realtime]>=3.8.0"` for Python, `npm install openai@^7.10.0 ws` for JavaScript, or `gem install openai async-websocket` for Ruby.
+
+For Go, run `go get github.com/openai/openai-go/v3@v3.98.0`.
+For Java, add the Maven dependency `com.openai:openai-java:4.101.0` and use Java 17 or later for these examples.
+These Go and Java SDK versions provide native Responses WebSocket support.
+
+In WebSocket mode, start each turn by sending a `response.create` event from the client. The payload mirrors the normal [Responses create body](https://developers.openai.com/api/reference/resources/responses/methods/create), except that transport-specific fields like `stream` and `background` are not used.
+
+```javascript
+import OpenAI from "openai";
+import { ResponsesWS } from "openai/resources/responses/ws";
+
+const client = new OpenAI();
+
+const ws = new ResponsesWS(client);
+try {
+  ws.send({
+    type: "response.create",
+    stream_id: "main",
+    model: "gpt-6-astra",
+    store: false,
+    input: [
+      {
+        type: "message",
+        role: "user",
+        content: [{ type: "input_text", text: "Find fizz_buzz()" }],
+      },
+    ],
+    tools: [],
+  });
+  let completed = false;
+  for await (const event of ws) {
+    if (event.type === "error") throw event.error;
+    if (event.type !== "message") continue;
+    const message = event.message;
+    if (message.type === "response.output_text.delta") {
+      process.stdout.write(message.delta);
+    } else if (message.type === "response.completed") {
+      completed = true;
+      break;
+    } else if (
+      message.type === "response.failed" ||
+      message.type === "response.incomplete"
+    ) {
+      throw new Error(JSON.stringify(message));
+    }
+  }
+  if (!completed)
+    throw new Error("Connection closed before the response finished.");
+} finally {
+  ws.close();
+}
+```
+
+```python
+from openai import OpenAI
+
+client = OpenAI()
+
+with client.responses.connect() as connection:
+    connection.response.create(
+        stream_id="main",
+        model="gpt-6-astra",
+        store=False,
+        input=[
+            {
+                "type": "message",
+                "role": "user",
+                "content": [{"type": "input_text", "text": "Find fizz_buzz()"}],
+            }
+        ],
+        tools=[],
+    )
+    for event in connection:
+        if event.type == "response.completed":
+            print(event.response.output_text)
+            break
+        if event.type in {"response.failed", "response.incomplete", "error"}:
+            raise RuntimeError(event.to_json())
+    else:
+        raise RuntimeError("Connection closed before the response finished.")
+```
+
+```go
+ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+defer cancel()
+client := openai.NewClient()
+conn, err := client.Responses.Connect(ctx, responses.ResponseConnectionOptions{})
+if err != nil {
+	log.Fatal(err)
+}
+defer conn.Close()
+if err := conn.Create(ctx, responses.ResponsesClientEventResponseCreateParam{
+	Model: "gpt-6-astra",
+	Store: openai.Bool(false),
+	Input: responses.ResponsesClientEventResponseCreateInputUnionParam{
+		OfString: openai.String("Find fizz_buzz()"),
+	},
+	StreamID: openai.String("main"),
+	Tools:    []responses.ToolUnionParam{},
+}); err != nil {
+	log.Fatal(err)
+}
+response, err := conn.FinalResponse(ctx)
+if err != nil {
+	log.Fatal(err)
+}
+if response.Status != responses.ResponseStatusCompleted {
+	log.Fatalf("Response ended with status %s", response.Status)
+}
+fmt.Println(response.OutputText())
+```
+
+```java
+import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.models.responses.*;
+import java.util.*;
+
+var client = OpenAIOkHttpClient.fromEnv();
+
+try (var conn = client.responses().connect()) {
+  conn.send(
+      ResponsesClientEvent.ofResponseCreate(
+          ResponsesClientEvent.ResponseCreate.builder()
+              .model("gpt-6-astra")
+              .store(false)
+              .input("Find fizz_buzz()")
+              .streamId("main")
+              .tools(List.of())
+              .build()));
+  var response = conn.finalResponse();
+  if (response.status().filter(ResponseStatus.COMPLETED::equals).isEmpty())
+    throw new IllegalStateException(
+        "Response ended with status " + response.status().orElse(null));
+  response.output().stream()
+      .flatMap(item -> item.message().stream())
+      .flatMap(message -> message.content().stream())
+      .flatMap(content -> content.outputText().stream())
+      .forEach(text -> System.out.println(text.text()));
+} finally {
+  client.close();
+}
+```
+
+```ruby
+require "async"
+require "openai"
+
+def wait_for_response(connection)
+  while (event = connection.receive)
+    case event.type.to_s
+    when "response.completed" then return event.response
+    when "response.failed", "response.incomplete", "error"
+      raise "Response failed: #{event.to_json}"
+    end
+  end
+  raise "Connection closed before the response finished"
+end
+
+client = OpenAI::Client.new
+Sync do |task|
+  task.with_timeout(120) do
+    client.responses.connect(request_options: { timeout: 10 }) do |connection|
+      connection.response.create(
+        stream_id: "main", model: "gpt-6-astra", store: false,
+        input: [
+          {
+            role: "user",
+            content: "Find fizz_buzz()"
+          }
+        ], tools: []
+      )
+      puts(wait_for_response(connection).output_text)
+    end
+  end
+end
+```
+
+
+Clients can optionally warm up request state by sending `response.create` with `generate: false`. This is useful when you already know the tools, instructions, and/or custom messages you plan to send with an upcoming turn. `generate: false` does not return a model output, but prepares request state so the next generated turn can start faster. The warmup request returns a response ID that you can chain from with `previous_response_id`, including on later turns in a response chain. The next section explains how to continue a session using `previous_response_id` and incremental inputs.
+
+## Continue with incremental inputs
+
+To add user instructions while a response is still running, use [Mid-turn steering](https://developers.openai.com/api/docs/guides/steering). Steering preserves completed work and includes the new instructions in a continuation. Use the following `response.create` pattern for ordinary between-turn continuation and tool results.
+
+To continue a run, send another `response.create` with:
+
+- `previous_response_id` set to the prior response ID.
+- `input` containing only new items (for example, tool outputs and the next user message).
+
+```javascript
+import OpenAI from "openai";
+import { ResponsesWS } from "openai/resources/responses/ws";
+
+const client = new OpenAI();
+const model = "gpt-6-astra";
+
+const tools = [
+  {
+    type: "function",
+    name: "get_test_results",
+    description: "Return a local demo test result.",
+    parameters: { type: "object", properties: {}, additionalProperties: false },
+    strict: true,
+  },
+];
+
+async function waitForResponse(ws) {
+  for await (const event of ws) {
+    if (event.type === "error") throw event.error;
+    if (event.type !== "message") continue;
+    const message = event.message;
+    if (message.type === "response.output_text.delta") {
+      process.stdout.write(message.delta);
+    } else if (message.type === "response.completed") {
+      return message.response;
+    } else if (
+      message.type === "response.failed" ||
+      message.type === "response.incomplete"
+    ) {
+      throw new Error(JSON.stringify(message));
+    }
+  }
+  throw new Error("Connection closed before the response finished.");
+}
+
+const ws = new ResponsesWS(client);
+try {
+  ws.send({
+    type: "response.create",
+    stream_id: "main",
+    model,
+    store: false,
+    input: "Find the failing test and suggest a fix.",
+    tools,
+    tool_choice: { type: "function", name: "get_test_results" },
+    parallel_tool_calls: false,
+  });
+  const first = await waitForResponse(ws);
+  const call = first.output.find((item) => item.type === "function_call");
+  if (!call || call.name !== "get_test_results") {
+    throw new Error("Expected a get_test_results function call.");
+  }
+  const result = {
+    test: "test_fizz_buzz",
+    failure: 'Expected "FizzBuzz" for 15, got "Fizz".',
+  };
+
+  // Continue on the same socket with the actual response and tool-call IDs.
+  ws.send({
+    type: "response.create",
+    stream_id: "main",
+    model,
+    store: false,
+    previous_response_id: first.id,
+    input: [
+      {
+        type: "function_call_output",
+        call_id: call.call_id,
+        output: JSON.stringify(result),
+      },
+      { role: "user", content: "Now optimize it." },
+    ],
+    tools,
+    tool_choice: "none",
+  });
+  await waitForResponse(ws);
+} finally {
+  ws.close();
+}
+```
+
+```python
+import json
+
+from openai import OpenAI
+from openai.resources.responses.responses import ResponsesConnection
+from openai.types.responses import FunctionToolParam, Response
+
+client = OpenAI()
+model = "gpt-6-astra"
+tools: list[FunctionToolParam] = [
+    {
+        "type": "function",
+        "name": "get_test_results",
+        "description": "Read the demo test results.",
+        "parameters": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": False,
+        },
+        "strict": True,
+    }
+]
+
+
+def get_test_results():
+    # Demo data. Replace this function with your test runner.
+    return {
+        "test": "test_fizz_buzz",
+        "failure": 'Expected "FizzBuzz" for 15, got "Fizz".',
+    }
+
+
+def wait_for_response(connection: ResponsesConnection) -> Response:
+    for event in connection:
+        if event.type == "response.completed":
+            return event.response
+        if event.type in {"response.failed", "response.incomplete", "error"}:
+            raise RuntimeError(event.to_json())
+    raise RuntimeError("Connection closed before the response finished.")
+
+
+with client.responses.connect() as connection:
+    connection.response.create(
+        stream_id="main",
+        model=model,
+        store=False,
+        input="Find the failing test and suggest a fix.",
+        tools=tools,
+        tool_choice={"type": "function", "name": "get_test_results"},
+        parallel_tool_calls=False,
+    )
+    response = wait_for_response(connection)
+    call = next(item for item in response.output if item.type == "function_call")
+    if call.name != "get_test_results" or json.loads(call.arguments) != {}:
+        raise ValueError("Expected a get_test_results call with no arguments")
+
+    # Continue on the same connection using the actual response and tool-call IDs.
+    connection.response.create(
+        stream_id="main",
+        model=model,
+        store=False,
+        previous_response_id=response.id,
+        input=[
+            {
+                "type": "function_call_output",
+                "call_id": call.call_id,
+                "output": json.dumps(get_test_results()),
+            },
+            {"role": "user", "content": "Now optimize it."},
+        ],
+        tools=tools,
+        tool_choice="none",
+    )
+    print(wait_for_response(connection).output_text)
+```
+
+```go
+ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+defer cancel()
+client := openai.NewClient()
+tools := []responses.ToolUnionParam{
+	{
+		OfFunction: &responses.FunctionToolParam{
+			Name:        "get_test_results",
+			Description: openai.String("Return a local demo test result."),
+			Parameters: map[string]any{
+				"type":                 "object",
+				"properties":           map[string]any{},
+				"additionalProperties": false,
+			},
+			Strict: openai.Bool(true),
+		},
+	},
+}
+conn, err := client.Responses.Connect(ctx, responses.ResponseConnectionOptions{})
+if err != nil {
+	log.Fatal(err)
+}
+defer conn.Close()
+if err := conn.Create(ctx, responses.ResponsesClientEventResponseCreateParam{
+	Model: "gpt-6-astra",
+	Store: openai.Bool(false),
+	Input: responses.ResponsesClientEventResponseCreateInputUnionParam{
+		OfString: openai.String("Find the failing test and suggest a fix."),
+	},
+	StreamID:          openai.String("main"),
+	Tools:             tools,
+	ParallelToolCalls: openai.Bool(false),
+	ToolChoice: responses.ResponsesClientEventResponseCreateToolChoiceUnionParam{
+		OfFunctionTool: &responses.ToolChoiceFunctionParam{
+			Name: "get_test_results",
+		},
+	},
+}); err != nil {
+	log.Fatal(err)
+}
+first, err := conn.FinalResponse(ctx)
+if err != nil {
+	log.Fatal(err)
+}
+if first.Status != responses.ResponseStatusCompleted {
+	log.Fatalf("Response ended with status %s", first.Status)
+}
+var callID string
+for _, item := range first.Output {
+	if item.Type == "function_call" && item.Name == "get_test_results" {
+		callID = item.CallID
+		break
+	}
+}
+if callID == "" {
+	log.Fatal("Expected a get_test_results function call")
+}
+// The result is a local demo fixture; carry the real response and call IDs.
+result := `{"test":"test_fizz_buzz","failure":"Expected FizzBuzz for 15, got Fizz."}`
+if err := conn.Create(ctx, responses.ResponsesClientEventResponseCreateParam{
+	Model:              "gpt-6-astra",
+	StreamID:           openai.String("main"),
+	Store:              openai.Bool(false),
+	PreviousResponseID: openai.String(first.ID),
+	Tools:              tools,
+	ToolChoice: responses.ResponsesClientEventResponseCreateToolChoiceUnionParam{
+		OfToolChoiceMode: openai.Opt(responses.ToolChoiceOptionsNone),
+	},
+	Input: responses.ResponsesClientEventResponseCreateInputUnionParam{
+		OfResponse: &responses.ResponseInputParam{
+			{
+				OfFunctionCallOutput: &responses.ResponseInputItemFunctionCallOutputParam{
+					CallID: openai.String(callID),
+					Output: responses.ResponseInputItemFunctionCallOutputOutputUnionParam{
+						OfString: openai.String(result),
+					},
+				},
+			},
+			responses.ResponseInputItemParamOfMessage("Now optimize it.", responses.EasyInputMessageRoleUser),
+		},
+	},
+}); err != nil {
+	log.Fatal(err)
+}
+response, err := conn.FinalResponse(ctx)
+if err != nil {
+	log.Fatal(err)
+}
+if response.Status != responses.ResponseStatusCompleted {
+	log.Fatalf("Response ended with status %s", response.Status)
+}
+fmt.Println(response.OutputText())
+```
+
+```java
+import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.core.JsonValue;
+import com.openai.models.responses.*;
+import java.util.*;
+
+var client = OpenAIOkHttpClient.fromEnv();
+
+var tool =
+    FunctionTool.builder()
+        .name("get_test_results")
+        .description("Return a local demo test result.")
+        .strict(true)
+        .parameters(
+            FunctionTool.Parameters.builder()
+                .putAdditionalProperty("type", JsonValue.from("object"))
+                .putAdditionalProperty("properties", JsonValue.from(Map.of()))
+                .putAdditionalProperty("additionalProperties", JsonValue.from(false))
+                .build())
+        .build();
+try (var conn = client.responses().connect()) {
+  conn.send(
+      ResponsesClientEvent.ofResponseCreate(
+          ResponsesClientEvent.ResponseCreate.builder()
+              .model("gpt-6-astra")
+              .store(false)
+              .input("Find the failing test and suggest a fix.")
+              .streamId("main")
+              .addTool(tool)
+              .parallelToolCalls(false)
+              .toolChoice(ToolChoiceFunction.builder().name("get_test_results").build())
+              .build()));
+  var first = conn.finalResponse();
+  if (first.status().filter(ResponseStatus.COMPLETED::equals).isEmpty())
+    throw new IllegalStateException(
+        "Response ended with status " + first.status().orElse(null));
+  var call =
+      first.output().stream()
+          .flatMap(item -> item.functionCall().stream())
+          .filter(item -> item.name().equals("get_test_results"))
+          .findFirst()
+          .orElseThrow(() -> new IllegalStateException("Expected get_test_results call"));
+  // Use the real response and call IDs with a local demo result.
+  var result =
+      "{\"test\":\"test_fizz_buzz\",\"failure\":\"Expected FizzBuzz for 15, got Fizz.\"}";
+  conn.send(
+      ResponsesClientEvent.ofResponseCreate(
+          ResponsesClientEvent.ResponseCreate.builder()
+              .model("gpt-6-astra")
+              .streamId("main")
+              .store(false)
+              .previousResponseId(first.id())
+              .addTool(tool)
+              .toolChoice(ToolChoiceOptions.NONE)
+              .inputOfResponse(
+                  List.of(
+                      ResponseInputItem.ofFunctionCallOutput(
+                          ResponseInputItem.FunctionCallOutput.builder()
+                              .callId(call.callId())
+                              .output(result)
+                              .build()),
+                      ResponseInputItem.ofEasyInputMessage(
+                          EasyInputMessage.builder()
+                              .role(EasyInputMessage.Role.USER)
+                              .content("Now optimize it.")
+                              .build())))
+              .build()));
+  var response = conn.finalResponse();
+  if (response.status().filter(ResponseStatus.COMPLETED::equals).isEmpty())
+    throw new IllegalStateException(
+        "Response ended with status " + response.status().orElse(null));
+  response.output().stream()
+      .flatMap(item -> item.message().stream())
+      .flatMap(message -> message.content().stream())
+      .flatMap(content -> content.outputText().stream())
+      .forEach(text -> System.out.println(text.text()));
+} finally {
+  client.close();
+}
+```
+
+```ruby
+require "async"
+require "openai"
+require "json"
+
+def wait_for_response(connection)
+  while (event = connection.receive)
+    case event.type.to_s
+    when "response.completed" then return event.response
+    when "response.failed", "response.incomplete", "error"
+      raise "Response failed: #{event.to_json}"
+    end
+  end
+  raise "Connection closed before the response finished"
+end
+
+tools = [
+  {
+    type: "function",
+    name: "get_test_results",
+    description: "Read the demo test results.",
+    parameters: {
+      type: "object",
+      properties: {},
+      required: [],
+      additionalProperties: false
+    },
+    strict: true
+  }
+]
+
+client = OpenAI::Client.new
+Sync do |task|
+  task.with_timeout(120) do
+    client.responses.connect(request_options: { timeout: 10 }) do |connection|
+      connection.response.create(
+        stream_id: "main", model: "gpt-6-astra", store: false,
+        input: "Find the failing test and suggest a fix.", tools: tools,
+        tool_choice: {
+          type: "function",
+          name: "get_test_results"
+        }, parallel_tool_calls: false
+      )
+      response = wait_for_response(connection)
+      call = response.output.grep(OpenAI::Responses::ResponseFunctionToolCall).first
+      unless call && call.name == "get_test_results" && JSON.parse(call.arguments) == {}
+        raise "Expected a get_test_results call with no arguments"
+      end
+
+      # Demo data. Replace this with your test runner.
+      result = {
+        test: "test_fizz_buzz",
+        failure: 'Expected "FizzBuzz" for 15, got "Fizz".'
+      }
+      connection.response.create(
+        stream_id: "main", model: "gpt-6-astra", store: false,
+        previous_response_id: response.id,
+        input: [
+          {
+            type: "function_call_output",
+            call_id: call.call_id,
+            output: JSON.generate(result)
+          },
+          {
+            role: "user",
+            content: "Now optimize it."
+          }
+        ],
+        tools: tools, tool_choice: "none"
+      )
+      puts(wait_for_response(connection).output_text)
+    end
+  end
+end
+```
+
+
+## How continuation works
+
+WebSocket mode uses the same `previous_response_id` chaining semantics as HTTP mode, but it adds a lower-latency continuation path on the active socket.
+
+On an active WebSocket connection, the service keeps recent previous-response state in a connection-local in-memory cache. When you use `stream_id`, each lane keeps its latest cached response, so continuing from the latest response in that lane is fast because the service can reuse connection-local state. Because the service retains previous-response state only in memory and does not write it to disk, you can use WebSocket mode in a way that is compatible with `store=false` and Zero Data Retention (ZDR).
+
+If a `previous_response_id` is not in the in-memory cache, behavior depends on whether you store responses:
+
+- With `store=true`, the service may hydrate older response IDs from persisted state when available. Continuation can still work, but it loses the in-memory latency benefit.
+- With `store=false` (including ZDR), there is no persisted fallback. If the ID is uncached, the request returns `previous_response_not_found`.
+
+If a same-lane continuation returns a `4xx` or `5xx`, the service evicts the referenced `previous_response_id` from the connection-local cache. A cross-lane fork that returns an error preserves the shared parent so the source lane can continue.
+
+## Compaction and creating new responses
+
+If you are using compaction, there are two different continuation patterns:
+
+### Server-side compaction (`context_management`)
+
+When you enable server-side compaction (`context_management` with `compact_threshold`), compaction happens during normal `/responses` generation. In WebSocket mode, you continue the same way you normally do: send the next `response.create` with the latest `previous_response_id` and only new input items.
+
+### Standalone `/responses/compact`
+
+The standalone [`/responses/compact` endpoint](https://developers.openai.com/api/reference/resources/responses/methods/compact) returns a new compacted input window, not a response ID. After compaction, create a new response on your WebSocket connection using the compacted window as `input` (plus the next user/tool items).
+
+Start a new chain by omitting `previous_response_id` or setting it to `null`. Pass the compacted output as-is; do not prune the returned window.
+
+```javascript
+import { toResponseInputItems } from "openai/lib/responses/ResponseInputItems";
+
+// Compact your current window with an HTTP request.
+const compacted = await client.responses.compact({
+  model: "gpt-6-astra",
+  input: longInputItems,
+});
+const nextInput = toResponseInputItems(compacted.output);
+nextInput.push({
+  type: "message",
+  role: "user",
+  content: [{ type: "input_text", text: "Continue from here." }],
+});
+
+// Start a new response on the WebSocket using the compacted window.
+const ws = new ResponsesWS(client);
+try {
+  ws.send({
+    type: "response.create",
+    stream_id: "main",
+    model: "gpt-6-astra",
+    store: false,
+    input: nextInput,
+    tools: [],
+  });
+  let completed = false;
+  for await (const event of ws) {
+    if (event.type === "error") throw event.error;
+    if (event.type !== "message") continue;
+    const message = event.message;
+    if (message.type === "response.output_text.delta") {
+      process.stdout.write(message.delta);
+    } else if (message.type === "response.completed") {
+      completed = true;
+      break;
+    } else if (
+      message.type === "response.failed" ||
+      message.type === "response.incomplete"
+    ) {
+      throw new Error(JSON.stringify(message));
+    }
+  }
+  if (!completed)
+    throw new Error("Connection closed before the response finished.");
+} finally {
+  ws.close();
+}
+```
+
+```python
+from typing import cast
+
+from openai import OpenAI
+from openai.types.responses import ResponseInputParam
+
+# Compact your current window (HTTP call).
+compacted = client.responses.compact(
+    model="gpt-6-astra",
+    input=long_input_items_array,
+)
+next_input = cast(
+    ResponseInputParam,
+    [item.to_dict() for item in compacted.output],
+)
+next_input.append(
+    {
+        "type": "message",
+        "role": "user",
+        "content": [{"type": "input_text", "text": "Continue from here."}],
+    }
+)
+
+# Start a new response on the WebSocket using the compacted window.
+with client.responses.connect() as connection:
+    connection.response.create(
+        stream_id="main",
+        model="gpt-6-astra",
+        store=False,
+        input=next_input,
+        tools=[],
+    )
+    for event in connection:
+        if event.type == "response.completed":
+            print(event.response.output_text)
+            break
+        if event.type in {"response.failed", "response.incomplete", "error"}:
+            raise RuntimeError(event.to_json())
+    else:
+        raise RuntimeError("Connection closed before the response finished.")
+```
+
+```ruby
+require "async"
+require "openai"
+
+def wait_for_response(connection)
+  while (event = connection.receive)
+    case event.type.to_s
+    when "response.completed" then return event.response
+    when "response.failed", "response.incomplete", "error"
+      raise "Response failed: #{event.to_json}"
+    end
+  end
+  raise "Connection closed before the response finished"
+end
+
+client = OpenAI::Client.new
+compacted = client.responses.compact(
+  model: "gpt-6-astra",
+  input: [
+    {
+      role: :user,
+      content: "Find the failing test."
+    }
+  ]
+)
+next_input = compacted.output.map(&:to_h)
+next_input << {
+  role: :user,
+  content: "Continue from here."
+}
+
+Sync do |task|
+  task.with_timeout(120) do
+    client.responses.connect(request_options: { timeout: 10 }) do |connection|
+      connection.response.create(
+        stream_id: "main", model: "gpt-6-astra", store: false,
+        input: next_input, tools: []
+      )
+      puts(wait_for_response(connection).output_text)
+    end
+  end
+end
+```
+
+
+## Run conversations in parallel
+
+You can maintain parallel conversations on the same connection using the `stream_id` parameter. Send independent `response.create` events back-to-back with different `stream_id` values. The server can run them concurrently on one connection. Their events can interleave, so keep one reader loop and route each event by `stream_id`.
+
+A `stream_id` names an ordered lane on one WebSocket connection. Keep `stream_id` and `previous_response_id` separate:
+
+- `stream_id` controls where events go and which requests run in first-in, first-out order.
+- `previous_response_id` controls conversation lineage.
+
+That separation unlocks two useful patterns.
+
+```text
+one WebSocket connection
+├─ stream_id="planner"   draft a deployment plan
+└─ stream_id="research"  list deployment risks
+```
+
+Requests with the same `stream_id` stay first-in, first-out and do not overlap. Requests with different `stream_id` values can run concurrently.
+
+### Limits per connection
+
+- A connection can have up to 16 active, in-flight responses across named and default lanes. The connection accepts more `response.create` events and queues them until an active response finishes.
+- A connection accepts up to 32 distinct named `stream_id` values. The implicit default lane does not count toward this named-stream limit. Reuse an existing `stream_id` or open a new connection after reaching the limit.
+
+### Fork a conversation onto a new stream
+
+To branch from a completed response, send its ID as `previous_response_id` with a new `stream_id`. While that response remains available, the new stream inherits its context, and the original stream can keep going. After the fork starts, both branches can run concurrently because they use different stream IDs.
+
+With `store=false` (including ZDR), a cross-lane fork depends on the parent remaining in the connection-local cache. If the fork queues while the source lane advances or fails, the parent can be evicted before the fork starts, and the fork returns `previous_response_not_found`. Wait for the fork lane to emit `response.in_progress` before advancing the source lane, or retry with `previous_response_id` set to `null` and replay full input context.
+
+```text
+main:   resp_1 ──▶ resp_2 ──▶ resp_3
+                       ╲
+critic:                 resp_4 ──▶ resp_5
+```
+
+Reusing a `stream_id` without `previous_response_id` starts a new response; it does not continue the conversation.
+
+The key calls look like this:
+
+```text
+# One socket, two independent conversations.
+send_create(connection, "planner", "Draft a deployment plan.")
+send_create(connection, "research", "List deployment risks.")
+
+# Fork the planner response, then continue the original branch in parallel.
+send_create(
+    connection,
+    "critic",
+    "Find gaps in this plan.",
+    previous_response_id=planner_response_id,
+)
+wait_for_in_progress(connection, "critic")
+send_create(
+    connection,
+    "planner",
+    "Add rollback steps.",
+    previous_response_id=planner_response_id,
+)
+```
+
+### Complete example
+
+Run parallel conversations, then fork one
+
+```javascript
+import OpenAI from "openai";
+import { ResponsesWS } from "openai/resources/responses/ws";
+
+const client = new OpenAI();
+
+const latestResponseIdByLane = new Map();
+
+function sendCreate(
+  ws,
+  streamId,
+  text,
+  previousResponseId = latestResponseIdByLane.get(streamId)
+) {
+  ws.send({
+    type: "response.create",
+    stream_id: streamId,
+    model: "gpt-6-astra",
+    store: false,
+    input: [
+      {
+        type: "message",
+        role: "user",
+        content: [{ type: "input_text", text }],
+      },
+    ],
+    previous_response_id: previousResponseId,
+  });
+}
+
+async function readMessage(events) {
+  while (true) {
+    const { value: event, done } = await events.next();
+    if (done)
+      throw new Error("Connection closed before all responses finished.");
+    if (event.type === "error") throw event.error;
+    if (event.type !== "message") continue;
+    const message = event.message;
+    if (
+      message.type === "response.failed" ||
+      message.type === "response.incomplete"
+    ) {
+      throw new Error(
+        `Lane ${message.stream_id} failed: ${JSON.stringify(message)}`
+      );
+    }
+    return message;
+  }
+}
+
+async function drainUntilComplete(events, expectedStreamIds) {
+  const remaining = new Set(expectedStreamIds);
+  while (remaining.size > 0) {
+    const message = await readMessage(events);
+    const streamId = message.stream_id;
+    if (!streamId || !remaining.has(streamId)) continue;
+    if (message.type === "response.completed") {
+      latestResponseIdByLane.set(streamId, message.response.id);
+      remaining.delete(streamId);
+    }
+  }
+}
+
+async function waitForInProgress(events, streamId) {
+  while (true) {
+    const message = await readMessage(events);
+    if (
+      message.type === "response.in_progress" &&
+      message.stream_id === streamId
+    )
+      return;
+  }
+}
+
+const ws = new ResponsesWS(client);
+// Keep one iterator so events stay queued while moving between phases.
+const events = ws.stream();
+try {
+  // Run two independent conversations in parallel.
+  sendCreate(
+    ws,
+    "planner",
+    "Draft a deployment plan for a stateless API service."
+  );
+  sendCreate(
+    ws,
+    "research",
+    "List common deployment risks for a stateless API service."
+  );
+  await drainUntilComplete(events, new Set(["planner", "research"]));
+
+  // Fork the planner conversation and continue its original branch in parallel.
+  const plannerResponseId = latestResponseIdByLane.get("planner");
+  sendCreate(
+    ws,
+    "critic",
+    "Find gaps in this deployment plan.",
+    plannerResponseId
+  );
+  // Let the fork load its parent before advancing the original lane's cache.
+  await waitForInProgress(events, "critic");
+  sendCreate(
+    ws,
+    "planner",
+    "Add rollback and monitoring steps to the plan.",
+    plannerResponseId
+  );
+  await drainUntilComplete(events, new Set(["critic", "planner"]));
+} finally {
+  await events.return?.();
+  ws.close();
+}
+```
+
+```python
+from openai import OpenAI
+from openai.resources.responses.responses import ResponsesConnection
+
+client = OpenAI()
+latest_response_id_by_lane: dict[str, str] = {}
+
+
+def send_create(
+    connection: ResponsesConnection,
+    stream_id: str,
+    text: str,
+    previous_response_id: str | None = None,
+):
+    if previous_response_id is None:
+        previous_response_id = latest_response_id_by_lane.get(stream_id)
+    connection.response.create(
+        stream_id=stream_id,
+        model="gpt-6-astra",
+        store=False,
+        input=[
+            {
+                "type": "message",
+                "role": "user",
+                "content": [{"type": "input_text", "text": text}],
+            }
+        ],
+        previous_response_id=previous_response_id,
+    )
+
+
+def drain_until_complete(
+    connection: ResponsesConnection, expected_stream_ids: set[str]
+):
+    completed: set[str] = set()
+    for event in connection:
+        stream_id = event.stream_id
+        if event.type == "error" and stream_id is None:
+            raise RuntimeError(f"Connection error: {event.to_json()}")
+        if stream_id is None or stream_id not in expected_stream_ids:
+            continue
+
+        if event.type == "response.completed":
+            latest_response_id_by_lane[stream_id] = event.response.id
+            completed.add(stream_id)
+            if completed == expected_stream_ids:
+                return
+        elif event.type in {"response.failed", "response.incomplete", "error"}:
+            raise RuntimeError(f"Lane {stream_id} failed: {event.to_json()}")
+    raise RuntimeError("Connection closed before all responses finished.")
+
+
+def wait_for_in_progress(connection: ResponsesConnection, expected_stream_id: str):
+    for event in connection:
+        if event.type == "error" and event.stream_id is None:
+            raise RuntimeError(f"Connection error: {event.to_json()}")
+        if event.stream_id != expected_stream_id:
+            continue
+        if event.type == "response.in_progress":
+            return
+        if event.type in {"response.failed", "response.incomplete", "error"}:
+            raise RuntimeError(f"Lane {expected_stream_id} failed: {event.to_json()}")
+    raise RuntimeError("Connection closed before the fork started.")
+
+
+with client.responses.connect() as connection:
+    # 1. Run two independent conversations in parallel.
+    send_create(
+        connection, "planner", "Draft a deployment plan for a stateless API service."
+    )
+    send_create(
+        connection,
+        "research",
+        "List common deployment risks for a stateless API service.",
+    )
+    drain_until_complete(connection, {"planner", "research"})
+
+    # 2. Fork the planner conversation and continue the original branch in parallel.
+    planner_response_id = latest_response_id_by_lane["planner"]
+    send_create(
+        connection,
+        "critic",
+        "Find gaps in this deployment plan.",
+        previous_response_id=planner_response_id,
+    )
+    # Let the fork bind its parent before advancing the original lane.
+    wait_for_in_progress(connection, "critic")
+    send_create(
+        connection,
+        "planner",
+        "Add rollback and monitoring steps to the plan.",
+        previous_response_id=planner_response_id,
+    )
+    drain_until_complete(connection, {"critic", "planner"})
+```
+
+```ruby
+require "async"
+require "openai"
+require "json"
+
+def send_create(connection, stream_id, text, previous_response_id = nil)
+  payload = {
+    stream_id: stream_id,
+    model: "gpt-6-astra",
+    store: false,
+    input: [
+      {
+        role: "user",
+        content: text
+      }
+    ]
+  }
+  payload[:previous_response_id] = previous_response_id if previous_response_id
+  connection.response.create(**payload)
+end
+
+def read_event(connection)
+  event = connection.receive or raise "Connection closed before all responses finished"
+  if ["response.failed", "response.incomplete", "error"].include?(event.type.to_s)
+    raise "Response failed: #{event.to_json}"
+  end
+
+  event
+end
+
+def drain_responses(connection, lanes, latest_ids)
+  remaining = lanes.dup
+  until remaining.empty?
+    event = read_event(connection)
+    next unless event.type.to_s == "response.completed"
+
+    lane = event.stream_id
+    next unless remaining.include?(lane)
+
+    latest_ids[lane] = event.response.id
+    remaining.delete(lane)
+  end
+end
+
+client = OpenAI::Client.new
+Sync do |task|
+  task.with_timeout(120) do
+    client.responses.connect(request_options: { timeout: 10 }) do |connection|
+      latest_ids = {}
+      send_create(connection, "planner", "Draft a deployment plan for a stateless API service.")
+      send_create(connection, "research", "List common deployment risks for a stateless API service.")
+      drain_responses(connection, ["planner", "research"], latest_ids)
+      parent_id = latest_ids.fetch("planner")
+      send_create(connection, "critic", "Find gaps in this deployment plan.", parent_id)
+      # Let the fork load its parent before advancing the original lane's cache.
+      loop do
+        event = read_event(connection)
+        break if event.type.to_s == "response.in_progress" && event.stream_id == "critic"
+      end
+      send_create(connection, "planner", "Add rollback and monitoring steps.", parent_id)
+      drain_responses(connection, ["critic", "planner"], latest_ids)
+      puts(JSON.generate(latest_ids))
+    end
+  end
+end
+```
+
+
+A `stream_id` must be 1–256 characters and can contain only letters, numbers, underscores (`_`), hyphens (`-`), and periods (`.`). Use it only in WebSocket `response.create` events; do not include it in HTTP `POST /v1/responses`.
+
+For named streams, server events include the matching `stream_id`, including terminal events and request-scoped errors.
+
+If you omit `stream_id`, the request uses an implicit default lane, and its events do not include `stream_id`. The default lane otherwise follows the same ordering and concurrency rules as named streams. An empty string is not a valid `stream_id`; omit the field to select the default lane.
+
+## Connection behavior and limits
+
+- Events within each response follow the existing Responses streaming event model. Events from different lanes can interleave.
+- Requests with the same `stream_id` run in first-in, first-out order and don't overlap. Requests on different lanes can run concurrently.
+- Connections last up to 60 minutes. Reconnect at the limit.
+
+## Reconnect and recover
+
+When a connection closes (or hits the 60-minute limit), its connection-local cache disappears for every lane. Open a new WebSocket connection and recover each lane with one of these patterns:
+
+1. If you stored a prior response (`store=true`) and have a valid response ID, continue that lane with `previous_response_id` and new input items.
+2. If you cannot continue a lane (for example, `store=false`/ZDR or `previous_response_not_found`), start a new response by setting `previous_response_id` to `null` (or omitting it) and send the full input context for that lane's next turn.
+3. If you compacted context with `/responses/compact`, use the returned compacted window as the base `input` for that new response, then append the latest user/tool items.
+
+## Errors to handle
+
+When the server can associate an error with a named lane, the error event includes `stream_id`. Other lanes can continue after a request-scoped error.
+
+`previous_response_not_found`
+
+```json
+{
+  "type": "error",
+  "status": 400,
+  "stream_id": "main",
+  "error": {
+    "type": "invalid_request_error",
+    "code": "previous_response_not_found",
+    "message": "Previous response with id 'resp_abc' not found.",
+    "param": "previous_response_id"
+  }
+}
+```
+
+`invalid_stream_id`
+
+```json
+{
+  "type": "error",
+  "status": 400,
+  "error": {
+    "type": "invalid_request_error",
+    "code": "invalid_stream_id",
+    "message": "The 'stream_id' field must be a non-empty string with at most 256 characters and may only contain letters, numbers, underscores, hyphens, and periods.",
+    "param": "stream_id"
+  }
+}
+```
+
+`websocket_stream_limit_reached`
+
+```json
+{
+  "type": "error",
+  "status": 400,
+  "stream_id": "agent_33",
+  "error": {
+    "type": "invalid_request_error",
+    "code": "websocket_stream_limit_reached",
+    "message": "This WebSocket connection has reached its maximum number of distinct stream IDs (32). Reuse an existing stream_id or open a new WebSocket connection.",
+    "param": "stream_id"
+  }
+}
+```
+
+`websocket_connection_limit_reached`
+
+```json
+{
+  "type": "error",
+  "error": {
+    "type": "invalid_request_error",
+    "code": "websocket_connection_limit_reached",
+    "message": "Responses websocket connection limit reached (60 minutes). Create a new websocket connection to continue."
+  },
+  "status": 400
+}
+```
+
+## Related guides
+
+- [Conversation state](https://developers.openai.com/api/docs/guides/conversation-state)
+- [Streaming API responses](https://developers.openai.com/api/docs/guides/streaming-responses)
+- [Responses streaming events reference](https://developers.openai.com/api/reference/resources/responses)
+- [Responses WebSocket events reference](https://developers.openai.com/api/reference/resources/responses/websocket-events)

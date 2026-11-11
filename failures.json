@@ -1,0 +1,76 @@
+[
+  {
+    "url": "https://learn.chatgpt.com/docs.md",
+    "title": "ChatGPT",
+    "kind": "document",
+    "source_indexes": [
+      "https://learn.chatgpt.com/llms.txt",
+      "https://developers.openai.com/codex/llms.txt"
+    ],
+    "downloaded_at": "2026-11-11T14:39:44.302515+00:00",
+    "path": "documents/learn.chatgpt.com/docs.md--10a780b90cf4.md",
+    "error": "HTTP Error 404: Not Found",
+    "status": "failed"
+  },
+  {
+    "url": "https://learn.chatgpt.com/guides/best-practices.md",
+    "title": "Best practices",
+    "kind": "document",
+    "source_indexes": [
+      "https://learn.chatgpt.com/llms.txt",
+      "https://developers.openai.com/codex/llms.txt"
+    ],
+    "downloaded_at": "2026-11-11T14:40:05.905707+00:00",
+    "path": "documents/learn.chatgpt.com/guides_best-practices.md--67a7ce1fea36.md",
+    "error": "HTTP Error 404: Not Found",
+    "status": "failed"
+  },
+  {
+    "url": "https://learn.chatgpt.com/guides/build-ai-native-engineering-team.md",
+    "title": "Building an AI-Native Engineering Team",
+    "kind": "document",
+    "source_indexes": [
+      "https://learn.chatgpt.com/llms.txt",
+      "https://developers.openai.com/codex/llms.txt"
+    ],
+    "downloaded_at": "2026-11-11T14:40:05.954962+00:00",
+    "path": "documents/learn.chatgpt.com/guides_build-ai-native-engineering-team.md--ebab3fcbd80b.md",
+    "error": "HTTP Error 404: Not Found",
+    "status": "failed"
+  },
+  {
+    "url": "https://learn.chatgpt.com/resources.md",
+    "title": "Resources",
+    "kind": "document",
+    "source_indexes": [
+      "https://learn.chatgpt.com/llms.txt",
+      "https://developers.openai.com/codex/llms.txt"
+    ],
+    "downloaded_at": "2026-11-11T14:40:06.159975+00:00",
+    "path": "documents/learn.chatgpt.com/resources.md--84bbfccbaea9.md",
+    "error": "HTTP Error 404: Not Found",
+    "status": "failed"
+  },
+  {
+    "url": "https://learn.chatgpt.com/videos.md",
+    "title": "Videos",
+    "kind": "document",
+    "source_indexes": [
+      "https://learn.chatgpt.com/llms.txt",
+      "https://developers.openai.com/codex/llms.txt"
+    ],
+    "downloaded_at": "2026-11-11T14:40:06.172413+00:00",
+    "path": "documents/learn.chatgpt.com/videos.md--154ca14e1ab7.md",
+    "error": "HTTP Error 404: Not Found",
+    "status": "failed"
+  },
+  {
+    "url": "https://learn.chatgpt.com/use-cases/llms.txt",
+    "title": "Documentation index",
+    "kind": "index",
+    "downloaded_at": "2026-11-11T14:38:45.761347+00:00",
+    "path": "indexes/learn.chatgpt.com/use-cases_llms.txt--4ad3796df1e6.txt",
+    "error": "HTTP Error 404: Not Found",
+    "status": "failed"
+  }
+]

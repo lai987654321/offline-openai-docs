@@ -1,0 +1,7 @@
+# Preserve source bytes so SHA-256 verification works on Windows and Linux.
+*.py text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+# Source patterns must come last to override extension rules.
+documents/** -text
+indexes/** -text

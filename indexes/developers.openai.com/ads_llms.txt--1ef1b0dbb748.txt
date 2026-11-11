@@ -1,0 +1,88 @@
+# Ads
+
+> Create ads in ChatGPT and measure website conversions with the Measurement Pixel, authentication, campaigns, product feeds, ad groups, ads, uploads, and insights.
+
+Use this as a compact map of the Ads docs. Each page has a Markdown twin at `/ads/<slug>.md`.
+
+## Documentation sets
+- [Combined Ads docs](https://developers.openai.com/ads/llms-full.txt): Single-file Markdown export of the Ads docs.
+
+## Account Management
+- [Account Management](https://developers.openai.com/ads/account-management.md): Manage advertiser branding, account status, and spending limits.
+
+## Api Overview
+- [Overview](https://developers.openai.com/ads/api-overview.md): Create and manage campaigns with the Advertiser API.
+
+## Api Partner Setup
+- [API Partner Setup](https://developers.openai.com/ads/api-partner-setup.md): Configure client accounts, conversions, and campaigns with the Ads API.
+
+## Api Quickstart
+- [Quickstart](https://developers.openai.com/ads/api-quickstart.md): Launch your first Ads API workflow
+
+## Api Reference
+- [Ad Account](https://developers.openai.com/ads/api-reference/ad-account.md): Manage account metadata and account-wide spending limits.
+- [Ad Groups](https://developers.openai.com/ads/api-reference/ad-groups.md): Create, list, retrieve, update, and change ad group state.
+- [Ads](https://developers.openai.com/ads/api-reference/ads.md): Create, list, retrieve, update, preview, and change ad state.
+- [Audit Logs](https://developers.openai.com/ads/api-reference/audit-logs.md): Review recorded changes to resources in an ad account.
+- [Authentication](https://developers.openai.com/ads/api-reference/authentication.md): Setting up bearer token authentication.
+- [Campaigns](https://developers.openai.com/ads/api-reference/campaigns.md): Create, list, retrieve, update, and change campaign state.
+- [Conversion Setup](https://developers.openai.com/ads/api-reference/conversion-setup.md): Create pixels, Conversions API keys, and event settings.
+- [Files](https://developers.openai.com/ads/api-reference/files.md): Upload remote images or binary files and reuse the returned file ID in ad creatives.
+- [Insights](https://developers.openai.com/ads/api-reference/insights.md): Retrieve aggregated insights data across ad accounts, campaigns, ad groups, and ads.
+
+## Bidding And Budgets
+- [Bidding & Budgets](https://developers.openai.com/ads/bidding-and-budgets.md): Choose campaign objectives, bid strategies, and spending limits.
+
+## Bulk Api
+- [Bulk API](https://developers.openai.com/ads/bulk-api.md): Create and update campaigns, ad groups, and ads in bulk.
+
+## Campaign Management
+- [Campaign Management](https://developers.openai.com/ads/campaign-management.md): Create, update, preview, and manage campaigns, ad groups, and ads.
+
+## Campaign Targeting
+- [Targeting](https://developers.openai.com/ads/campaign-targeting.md): Configure geographic, platform, and audience targeting and context hints.
+
+## Conversion Optimized Campaigns
+- [Conversion-Optimized Campaigns](https://developers.openai.com/ads/conversion-optimized-campaigns.md): Optimize campaigns toward a selected conversion event while paying per click.
+
+## Conversion Tracking
+- [Conversion Tracking](https://developers.openai.com/ads/conversion-tracking.md): Set up event sources, send conversions, and connect them to campaigns.
+
+## Conversions Api
+- [Conversions API](https://developers.openai.com/ads/conversions-api.md): Server-to-server conversion events.
+
+## Custom Audiences
+- [Custom Audiences](https://developers.openai.com/ads/custom-audiences.md): Create, update, and combine customer audiences for campaign targeting and bid adjustments.
+
+## Delta Feeds
+- [Delta Feeds API](https://developers.openai.com/ads/delta-feeds.md): Update product availability and prices without uploading your entire catalog.
+
+## Hotel Feeds
+- [Hotel property feeds (limited beta)](https://developers.openai.com/ads/hotel-feeds.md): Create Hotel property feeds, query inventory, and preview Hotel ads in the limited beta.
+
+## Image Tag
+- [Image Tag](https://developers.openai.com/ads/image-tag.md): Send conversion events from HTML without JavaScript.
+
+## Location Targeting
+- [Location Targeting](https://developers.openai.com/ads/location-targeting.md): Target campaigns by country, region, or market.
+
+## Measurement Pixel
+- [Measurement Pixel](https://developers.openai.com/ads/measurement-pixel.md): Send conversion events from web pages.
+
+## Multiple Pixels
+- [Multiple Pixel IDs](https://developers.openai.com/ads/multiple-pixels.md): Send events to multiple pixels or target one specific pixel.
+
+## Platform Targeting
+- [Platform Targeting](https://developers.openai.com/ads/platform-targeting.md): Choose the ChatGPT apps and web browsers where your campaign can deliver.
+
+## Product Feeds
+- [Product Feeds](https://developers.openai.com/ads/product-feeds.md): Set up, update, and advertise a product catalog.
+
+## Reporting
+- [Reporting](https://developers.openai.com/ads/reporting.md): Retrieve delivery, cost, product, and attributed conversion metrics.
+
+## Supported Events
+- [Supported Events](https://developers.openai.com/ads/supported-events.md): Supported conversion events & data shapes.
+
+## Troubleshooting
+- [Troubleshooting](https://developers.openai.com/ads/troubleshooting.md): Diagnose serving issues, reviews, low delivery, and API errors.

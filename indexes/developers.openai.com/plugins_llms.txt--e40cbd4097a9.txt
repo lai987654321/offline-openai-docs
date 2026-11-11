@@ -1,0 +1,56 @@
+# Plugins
+
+> Build and publish plugins with skills, MCP servers, and optional UI.
+
+Use this as a lightweight map for AI tools. Each Plugins page has a Markdown twin at `/plugins/<slug>.md` for direct ingestion.
+
+## Documentation sets
+- [Combined Plugins docs](https://developers.openai.com/plugins/llms-full.txt): Single-file Markdown export of the Plugins docs.
+- [Plugin UI reference (Markdown)](https://developers.openai.com/plugins/reference.md): Schema and API fields for tools, resources, and components.
+
+## Build
+- [Add UI to your MCP server](https://developers.openai.com/plugins/build/chatgpt-ui.md): Return optional UI resources from selected MCP tools.
+- [Authentication](https://developers.openai.com/plugins/build/auth.md): Authentication patterns for plugin MCP servers.
+- [Build an MCP server](https://developers.openai.com/plugins/build/mcp-server.md): Add live data and controlled tools to your plugin.
+- [Build skills](https://developers.openai.com/plugins/build/skills.md): Add repeatable workflows around your plugin's MCP tools.
+- [Checkout API reference](https://developers.openai.com/plugins/build/monetization.md): Implement checkout from optional plugin UI.
+- [Examples](https://developers.openai.com/plugins/build/examples.md): End-to-end examples of MCP servers with optional UI.
+- [MCP Events](https://developers.openai.com/plugins/build/mcp-events.md): Implement event subscriptions and webhook delivery for your MCP server.
+- [MCP server and UI quickstart](https://developers.openai.com/plugins/build/app-quickstart.md): Build an MCP server for ChatGPT and Codex, with optional UI in ChatGPT.
+- [Package your plugin](https://developers.openai.com/plugins/build/plugins.md): Assemble skills and MCP server dependencies into a distributable plugin.
+- [Plugin Extensions](https://developers.openai.com/plugins/build/extensions.md): Build plugins that feel like native, first-class features of ChatGPT.
+
+## Concepts
+- [MCP server](https://developers.openai.com/plugins/concepts/mcp-server.md): Understand how an MCP server gives a plugin tools and access to external systems.
+- [Plugin architecture](https://developers.openai.com/plugins/concepts/plugins.md): Understand how plugins combine skills, MCP servers, and optional UI.
+- [Skills](https://developers.openai.com/plugins/concepts/skills.md): Understand how skills add repeatable workflows around MCP tools.
+- [UI guidelines](https://developers.openai.com/plugins/concepts/ui-guidelines.md): Guidelines for designing optional plugin UI in ChatGPT.
+
+## Deploy
+- [Connect and test your plugin](https://developers.openai.com/plugins/deploy/connect-chatgpt.md): Test an optional MCP server, then package and evaluate the complete plugin.
+- [Plugin submission errors](https://developers.openai.com/plugins/deploy/submission-errors.md): Find and fix validation errors for plugins submitted to the public directory
+- [Remote MCP server review requirements](https://developers.openai.com/plugins/deploy/app-review.md): Prepare a plugin's remote MCP server and optional UI for public review.
+- [Submit desktop-only plugins](https://developers.openai.com/plugins/deploy/desktop-only.md): Submit a plugin that runs a local MCP server or requires desktop execution.
+- [Troubleshooting](https://developers.openai.com/plugins/deploy/troubleshooting.md): Troubleshoot plugin tools and optional UI.
+- [Upload and submit your plugin](https://developers.openai.com/plugins/deploy/submission.md): Bring your plugin to the directory and keep it up to date.
+
+## Guides
+- [Local services Get Quote conversion spec](https://developers.openai.com/plugins/guides/local-services-request-quote-conversion-spec.md): Contract for integrating a local services quote-request plugin into ChatGPT's conversion flow.
+- [Optimize Metadata](https://developers.openai.com/plugins/guides/optimize-metadata.md): Improve discovery and behavior with rich metadata.
+- [Product checkout conversion spec](https://developers.openai.com/plugins/guides/product-checkout-conversion-spec.md): Contract for integrating a product checkout plugin into ChatGPT's conversion flow.
+- [Restaurant reservation conversion spec](https://developers.openai.com/plugins/guides/restaurant-reservation-conversion-spec.md): Contract for integrating a restaurant reservation plugin into ChatGPT's Reserve flow.
+- [Security & Privacy](https://developers.openai.com/plugins/guides/security-privacy.md): Security and privacy considerations for plugins.
+- [Submit your Claude Code plugin to OpenAI](https://developers.openai.com/plugins/guides/submit-claude-plugin.md): Convert a Claude Code plugin or connector into a plugin you can submit to OpenAI.
+
+## Plan
+- [Brainstorm plugin use cases](https://developers.openai.com/plugins/plan/use-case.md): Decide what people should be able to accomplish with your plugin.
+- [Define tools](https://developers.openai.com/plugins/plan/tools.md): Translate plugin use cases into a focused MCP tool surface.
+
+## Plugin Guidelines
+- [Plugin guidelines](https://developers.openai.com/plugins/plugin-guidelines.md): Requirements for all plugins published in the ChatGPT Directory.
+
+## Quickstart
+- [Quickstart](https://developers.openai.com/plugins/quickstart.md): Connect an MCP server and test the resulting plugin in ChatGPT Work.
+
+## Reference
+- [Reference](https://developers.openai.com/plugins/reference.md): Reference for ChatGPT-specific UI extensions and metadata.

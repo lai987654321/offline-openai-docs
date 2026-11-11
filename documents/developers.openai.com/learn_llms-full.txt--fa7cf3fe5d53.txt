@@ -1,0 +1,2725 @@
+# Learn — full documentation
+
+> Single-file Markdown export of learn docs and curated items.
+
+Curated index: https://developers.openai.com/learn/llms.txt
+
+# Agents SDK — Python
+
+> Python SDK for developing agents with OpenAI.
+
+- Type: Code
+- Tags: agents
+- URL: https://github.com/openai/openai-agents-python
+- Created: 2025-07-18
+- Updated: 2025-08-13
+
+## Summary
+Library for building OpenAI agents using Python. — Agents SDK, agentic, tool calling
+
+## Details
+Offers Python modules and utilities to create agent applications.
+
+---
+
+# Agents SDK — TypeScript
+
+> TypeScript SDK for developing agents with OpenAI.
+
+- Type: Code
+- Tags: agents
+- URL: https://github.com/openai/openai-agents-js
+- Created: 2025-07-18
+- Updated: 2025-08-13
+
+## Summary
+Library and tools for building OpenAI agents in TypeScript. — Agents SDK, agentic, tool calling
+
+## Details
+Provides TypeScript interfaces and utilities for agent development.
+
+---
+
+# Agents SDK quickstart
+
+> Quickstart project for building agents with the Agents SDK.
+
+- Type: Code
+- Tags: agents
+- URL: https://openai.github.io/openai-agents-python/quickstart/
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Starter code to spin up your first agent in minutes. — agents, Agents SDK, agentic, tool calling
+
+## Details
+Provides boilerplate and instructions to initialize and run an agent using the OpenAI Agents SDK.
+
+---
+
+# ChatKit advanced samples
+
+> Advanced samples showcasing the capabilities of ChatKit (part of AgentKit).
+
+- Type: Code
+- Tags: chatkit, agentkit, agents, customer-service, knowledge-assistant, ad-generation
+- URL: https://github.com/openai/openai-chatkit-advanced-samples
+- Created: 2025-10-06
+- Updated: 2025-10-06
+
+## Summary
+Demonstrates advanced use cases for ChatKit (part of AgentKit) with custom ChatKit server integrations for different use cases.
+
+## Details
+Provides example workflows showcasing the capabilities of ChatKit (part of AgentKit) with custom ChatKit server integrations for different use cases.
+
+---
+
+# ChatKit starter app
+
+> Integrate ChatKit with an Agent Builder workflow in your application.
+
+- Type: Code
+- Tags: chatkit, agentkit, agents
+- URL: https://github.com/openai/openai-chatkit-starter-app
+- Created: 2025-10-06
+- Updated: 2025-10-06
+
+## Summary
+Demonstrates how to use ChatKit (part of AgentKit) to build agents easily in your own applications.
+
+## Details
+Provides example workflows utilizing the ChatKit API to build agents in your own applications.
+
+---
+
+# Computer Use API — starter app
+
+> Sample app showcasing Computer Use API integration.
+
+- Type: Code
+- Tags: agents, cua
+- URL: https://github.com/openai/openai-cua-sample-app
+- Created: 2025-07-18
+- Updated: 2025-08-13
+
+## Summary
+Demonstrates how to use the CUA with OpenAI agents. — Agents SDK, agentic, tool calling, computer use, computer-using agent (CUA)
+
+## Details
+Provides example workflows utilizing the Computer Use API.
+
+---
+
+# CS agents demo
+
+> Demo showcasing customer service agents orchestration.
+
+- Type: Code
+- Tags: agents
+- URL: https://github.com/openai/openai-cs-agents-demo
+- Created: 2025-07-21
+- Updated: 2025-07-21
+
+## Summary
+Examples of agents orchestration for customer service using the Agents SDK.
+
+## Details
+Provides code and configurations for building customer service agents with OpenAI tools.
+
+---
+
+# Frontend testing demo
+
+> Demo application for frontend testing using CUA.
+
+- Type: Code
+- Tags: cua
+- URL: https://github.com/openai/openai-testing-agent-demo
+- Created: 2025-07-18
+- Updated: 2025-08-13
+
+## Summary
+Shows how to automate frontend tests with Computer Use API. — computer use, computer-using agent (CUA)
+
+## Details
+Provides example scripts and configurations for UI testing.
+
+---
+
+# openai.fm
+
+> Code samples for speech processing from the openai.fm repo.
+
+- Type: Code
+- Tags: speech
+- URL: https://github.com/openai/openai-fm
+- Created: 2025-07-18
+- Updated: 2025-08-13
+
+## Summary
+Reference implementation for speech-related applications. — audio
+
+## Details
+Demonstrates using OpenAI APIs for audio tasks.
+
+---
+
+# Plugin UI examples
+
+> Example UI and corresponding MCP servers for ChatGPT plugins.
+
+- Type: Code
+- Tags: apps-sdk
+- URL: https://github.com/openai/openai-apps-sdk-examples
+- Created: 2025-10-06
+- Updated: 2025-10-06
+
+## Summary
+Demonstrates how to build MCP servers with optional UI for ChatGPT plugins.
+
+## Details
+Provides example MCP servers and UI.
+
+---
+
+# Realtime & Twilio starter app
+
+> Starter app integrating realtime agents with Twilio.
+
+- Type: Code
+- Tags: realtime
+- URL: https://github.com/openai/openai-realtime-twilio-demo
+- Created: 2025-07-18
+- Updated: 2025-08-13
+
+## Summary
+Example of using realtime API alongside Twilio services. — voice, streaming, low latency
+
+## Details
+Shows how to handle voice interactions in realtime via Twilio.
+
+---
+
+# Realtime agents starter app
+
+> Starter app demonstrating realtime agent capabilities.
+
+- Type: Code
+- Tags: agents, realtime
+- URL: https://github.com/openai/openai-realtime-agents
+- Created: 2025-07-18
+- Updated: 2025-07-18
+
+## Summary
+Building realtime (speech to speech voice) agents with OpenAI, for example for customer service use cases.
+
+## Details
+Shows how to integrate realtime APIs for responsive agent behavior.
+
+---
+
+# Realtime console
+
+> Console application demonstrating realtime API usage.
+
+- Type: Code
+- Tags: realtime
+- URL: https://github.com/openai/openai-realtime-console
+- Created: 2025-07-18
+- Updated: 2025-08-13
+
+## Summary
+Basic console for interacting with realtime agent APIs. — voice, streaming, low latency
+
+## Details
+Useful for testing and experimenting with realtime features.
+
+---
+
+# Realtime solar system
+
+> Demo of realtime agent interactions in a solar system example.
+
+- Type: Code
+- Tags: realtime
+- URL: https://github.com/openai/openai-realtime-solar-system
+- Created: 2025-07-18
+- Updated: 2025-08-13
+
+## Summary
+Interactive example showcasing realtime capabilities. — voice, streaming, low latency
+
+## Details
+Visualizes a solar system while agents respond in real time.
+
+---
+
+# Responses starter app
+
+> Starter application demonstrating OpenAI Responses API with tools.
+
+- Type: Code
+- Tags: responses, tools
+- URL: https://github.com/openai/openai-responses-starter-app
+- Created: 2025-07-18
+- Updated: 2025-08-13
+
+## Summary
+Example codebase for building with the Responses API and tools.
+
+## Details
+Provides a foundational app setup showcasing responses and tool usage.
+
+---
+
+# Sora starter app
+
+> Sample app showcasing integrations with Sora in the API.
+
+- Type: Code
+- Tags: sora
+- URL: https://github.com/openai/openai-sora-sample-app
+- Created: 2025-10-15
+- Updated: 2025-10-15
+
+## Summary
+Demonstrates how to use Sora in the API to build video generation workflows.
+
+## Details
+Provides example video generation workflows utilizing the Sora API.
+
+---
+
+# Structured outputs samples
+
+> Sample code demonstrating structured outputs with OpenAI APIs.
+
+- Type: Code
+- Tags: structured outputs
+- URL: https://github.com/openai/openai-structured-outputs-samples
+- Created: 2025-07-18
+- Updated: 2025-08-13
+
+## Summary
+Examples of producing structured data from model responses. — structured outputs, JSON, schema
+
+## Details
+Includes patterns for validating and using structured outputs.
+
+---
+
+# Support agent demo
+
+> Demo showing a customer support agent with a human in the loop.
+
+- Type: Code
+- Tags: agents, responses
+- URL: https://github.com/openai/openai-support-agent-demo
+- Created: 2025-07-18
+- Updated: 2025-07-18
+
+## Summary
+Human in the loop demo of a customer service support agent built with Responses API.
+
+## Details
+Illustrates handling user queries and tool responses in a support setting.
+
+---
+
+# Codex Prompting Guide
+
+> Codex models advance the frontier of intelligence and efficiency and our recommended agentic coding model. Follow this guide closely to ensure you’re getting th
+
+- Type: Cookbook
+- Tags: codex, compaction, responses
+- URL: /cookbook/examples/gpt-5/codex_prompting_guide
+- Created: 2026-02-25
+- Updated: 2026-02-25
+
+## Summary
+Codex models advance the frontier of intelligence and efficiency and our recommended agentic coding model. Follow this guide closely to ensure you’re getting th
+
+## Details
+Codex models advance the frontier of intelligence and efficiency and our recommended agentic coding model. Follow this guide closely to ensure you’re getting th
+
+---
+
+# Comparing Speech-to-Text Methods with the OpenAI API
+
+> Cookbook to compare speech-to-text methods and choose the right approach.
+
+- Type: Cookbook
+- Tags: agents-sdk, audio, speech
+- URL: /cookbook/examples/speech_transcription_methods
+- Created: 2025-04-29
+- Updated: 2025-04-29
+
+## Summary
+Cookbook to compare speech-to-text methods and choose the right approach.
+
+## Details
+Cookbook to compare speech-to-text methods and choose the right approach.
+
+---
+
+# Developing Hallucination Guardrails
+
+> Cookbook to build hallucination guardrails with evals for support agents.
+
+- Type: Cookbook
+- Tags: guardrails
+- URL: /cookbook/examples/developing_hallucination_guardrails
+- Created: 2024-05-29
+- Updated: 2024-05-29
+
+## Summary
+Cookbook to build hallucination guardrails with evals for support agents.
+
+## Details
+Cookbook to build hallucination guardrails with evals for support agents.
+
+---
+
+# Doing RAG on PDFs using File Search in the Responses API
+
+> Cookbook to search PDFs with the Responses API file search tool.
+
+- Type: Cookbook
+- Tags: functions, responses
+- URL: /cookbook/examples/file_search_responses
+- Created: 2025-03-11
+- Updated: 2025-03-11
+
+## Summary
+Cookbook to search PDFs with the Responses API file search tool.
+
+## Details
+Cookbook to search PDFs with the Responses API file search tool.
+
+---
+
+# Eval Driven System Design - From Prototype to Production
+
+> Cookbook for eval-driven design of a receipt parsing automation workflow.
+
+- Type: Cookbook
+- Tags: API Flywheel, completions, evals, functions, responses, tracing
+- URL: /cookbook/examples/partners/eval_driven_system_design/receipt_inspection
+- Created: 2025-06-02
+- Updated: 2025-06-02
+
+## Summary
+Cookbook for eval-driven design of a receipt parsing automation workflow.
+
+## Details
+Cookbook for eval-driven design of a receipt parsing automation workflow.
+
+---
+
+# Evals API Use-case - Responses Evaluation
+
+> Cookbook to evaluate new models against stored Responses API logs.
+
+- Type: Cookbook
+- Tags: evals, responses
+- URL: /cookbook/examples/evaluation/use-cases/responses-evaluation
+- Created: 2025-05-13
+- Updated: 2025-05-13
+
+## Summary
+Cookbook to evaluate new models against stored Responses API logs.
+
+## Details
+Cookbook to evaluate new models against stored Responses API logs.
+
+---
+
+# Fine-tuning with gpt-oss and Hugging Face Transformers
+
+> Authored by: Edward Beeching, Quentin Gallouédec, and Lewis Tunstall Large reasoning models like OpenAI o3 generate a chain-of-thought to improve the accuracy a
+
+- Type: Cookbook
+- Tags: gpt-oss, gpt-oss-fine-tuning, open-models
+- URL: /cookbook/articles/gpt-oss/fine-tune-transfomers
+- Created: 2025-08-05
+- Updated: 2025-08-05
+
+## Summary
+Authored by: Edward Beeching, Quentin Gallouédec, and Lewis Tunstall Large reasoning models like OpenAI o3 generate a chain-of-thought to improve the accuracy a
+
+## Details
+Authored by: Edward Beeching, Quentin Gallouédec, and Lewis Tunstall Large reasoning models like OpenAI o3 generate a chain-of-thought to improve the accuracy a
+
+---
+
+# Generate images with GPT Image
+
+> Cookbook to generate and edit images with GPT Image capabilities.
+
+- Type: Cookbook
+- Tags: images
+- URL: /cookbook/examples/generate_images_with_gpt_image
+- Created: 2025-04-23
+- Updated: 2025-04-23
+
+## Summary
+Cookbook to generate and edit images with GPT Image capabilities.
+
+## Details
+Cookbook to generate and edit images with GPT Image capabilities.
+
+---
+
+# Generate images with high input fidelity
+
+> Cookbook to preserve image details using high input fidelity in Image API.
+
+- Type: Cookbook
+- Tags: images
+- URL: /cookbook/examples/generate_images_with_high_input_fidelity
+- Created: 2025-07-17
+- Updated: 2025-07-17
+
+## Summary
+Cookbook to preserve image details using high input fidelity in Image API.
+
+## Details
+Cookbook to preserve image details using high input fidelity in Image API.
+
+---
+
+# GPT-5.2 Prompting Guide
+
+> Cookbook to prompt GPT-5.2 for accurate, concise enterprise workflows.
+
+- Type: Cookbook
+- Tags: gpt-5.2
+- URL: /cookbook/examples/gpt-5/gpt-5-2_prompting_guide
+- Created: 2025-12-11
+- Updated: 2025-12-11
+
+## Summary
+Cookbook to prompt GPT-5.2 for accurate, concise enterprise workflows.
+
+## Details
+Cookbook to prompt GPT-5.2 for accurate, concise enterprise workflows.
+
+---
+
+# Gpt-image-1.5 Prompting Guide
+
+> Cookbook to prompt gpt-image-1.5 for reliable image generation results.
+
+- Type: Cookbook
+- Tags: images, vision
+- URL: /cookbook/examples/multimodal/image-gen-1.5-prompting_guide
+- Created: 2025-12-16
+- Updated: 2025-12-16
+
+## Summary
+Cookbook to prompt gpt-image-1.5 for reliable image generation results.
+
+## Details
+Cookbook to prompt gpt-image-1.5 for reliable image generation results.
+
+---
+
+# Guide to Using the Responses API's MCP Tool
+
+> Cookbook to connect external services using the Responses API MCP tool.
+
+- Type: Cookbook
+- Tags: mcp, security
+- URL: /cookbook/examples/mcp/mcp_tool_guide
+- Created: 2025-05-21
+- Updated: 2025-05-21
+
+## Summary
+Cookbook to connect external services using the Responses API MCP tool.
+
+## Details
+Cookbook to connect external services using the Responses API MCP tool.
+
+---
+
+# How to run gpt-oss locally with LM Studio
+
+> LM Studio is a performant and friendly desktop application for running large language models (LLMs) on local hardware. This guide will walk you through how to s
+
+- Type: Cookbook
+- Tags: gpt-oss, gpt-oss-local, open-models
+- URL: /cookbook/articles/gpt-oss/run-locally-lmstudio
+- Created: 2025-08-07
+- Updated: 2025-08-07
+
+## Summary
+LM Studio is a performant and friendly desktop application for running large language models (LLMs) on local hardware. This guide will walk you through how to s
+
+## Details
+LM Studio is a performant and friendly desktop application for running large language models (LLMs) on local hardware. This guide will walk you through how to s
+
+---
+
+# How to run gpt-oss locally with Ollama
+
+> Want to get OpenAI gpt-oss running on your own hardware? This guide will walk you through how to use Ollama to set up gpt-oss-20b or gpt-oss-120b locally, to ch
+
+- Type: Cookbook
+- Tags: gpt-oss, gpt-oss-local, open-models
+- URL: /cookbook/articles/gpt-oss/run-locally-ollama
+- Created: 2025-08-05
+- Updated: 2025-08-05
+
+## Summary
+Want to get OpenAI gpt-oss running on your own hardware? This guide will walk you through how to use Ollama to set up gpt-oss-20b or gpt-oss-120b locally, to ch
+
+## Details
+Want to get OpenAI gpt-oss running on your own hardware? This guide will walk you through how to use Ollama to set up gpt-oss-20b or gpt-oss-120b locally, to ch
+
+---
+
+# How to use the Usage API and Cost API to monitor your OpenAI usage
+
+> Cookbook to fetch and visualize Completions Usage and cost data via API.
+
+- Type: Cookbook
+- Tags: cost-api, usage-api
+- URL: /cookbook/examples/completions_usage_api
+- Created: 2025-01-14
+- Updated: 2025-01-14
+
+## Summary
+Cookbook to fetch and visualize Completions Usage and cost data via API.
+
+## Details
+Cookbook to fetch and visualize Completions Usage and cost data via API.
+
+---
+
+# Leveraging model distillation to fine-tune a model
+
+> Cookbook to distill a larger model into a smaller fine-tuned model.
+
+- Type: Cookbook
+- Tags: completions, fine-tuning
+- URL: /cookbook/examples/leveraging_model_distillation_to_fine-tune_a_model
+- Created: 2024-10-16
+- Updated: 2024-10-16
+
+## Summary
+Cookbook to distill a larger model into a smaller fine-tuned model.
+
+## Details
+Cookbook to distill a larger model into a smaller fine-tuned model.
+
+---
+
+# Modernizing your Codebase with Codex
+
+> Cookbook to modernize legacy codebases using the OpenAI Codex CLI.
+
+- Type: Cookbook
+- Tags: codex
+- URL: /cookbook/examples/codex/code_modernization
+- Created: 2025-11-19
+- Updated: 2025-11-19
+
+## Summary
+Cookbook to modernize legacy codebases using the OpenAI Codex CLI.
+
+## Details
+Cookbook to modernize legacy codebases using the OpenAI Codex CLI.
+
+---
+
+# Multi-Agent Portfolio Collaboration with OpenAI Agents SDK
+
+> Cookbook for multi-agent portfolio analysis workflows using the OpenAI Agents SDK.
+
+- Type: Cookbook
+- Tags: agents-sdk, functions, mutli-agent-collaboration, responses
+- URL: /cookbook/examples/agents_sdk/multi-agent-portfolio-collaboration/multi_agent_portfolio_collaboration
+- Created: 2025-05-28
+- Updated: 2025-05-28
+
+## Summary
+Cookbook for multi-agent portfolio analysis workflows using the OpenAI Agents SDK.
+
+## Details
+Cookbook for multi-agent portfolio analysis workflows using the OpenAI Agents SDK.
+
+---
+
+# Multi-Language One-Way Translation with the Realtime API
+
+> Cookbook to build one-way speech translation with the Realtime API.
+
+- Type: Cookbook
+- Tags: audio, speech
+- URL: /cookbook/examples/voice_solutions/one_way_translation_using_realtime_api
+- Created: 2025-03-24
+- Updated: 2025-03-24
+
+## Summary
+Cookbook to build one-way speech translation with the Realtime API.
+
+## Details
+Cookbook to build one-way speech translation with the Realtime API.
+
+---
+
+# Multi-Tool Orchestration with RAG approach using OpenAI's Responses API
+
+> Cookbook to route queries across tools with RAG using the Responses API.
+
+- Type: Cookbook
+- Tags: functions, pinecone, responses, web-search
+- URL: /cookbook/examples/responses_api/responses_api_tool_orchestration
+- Created: 2025-03-28
+- Updated: 2025-03-28
+
+## Summary
+Cookbook to route queries across tools with RAG using the Responses API.
+
+## Details
+Cookbook to route queries across tools with RAG using the Responses API.
+
+---
+
+# o3/o4-mini Function Calling Guide
+
+> Cookbook to improve o3/o4-mini function calling with prompt best practices.
+
+- Type: Cookbook
+- Tags: functions, reasoning, responses
+- URL: /cookbook/examples/o-series/o3o4-mini_prompting_guide
+- Created: 2025-05-26
+- Updated: 2025-05-26
+
+## Summary
+Cookbook to improve o3/o4-mini function calling with prompt best practices.
+
+## Details
+Cookbook to improve o3/o4-mini function calling with prompt best practices.
+
+---
+
+# Orchestrating Agents: Routines and Handoffs
+
+> Cookbook for orchestrating agent workflows with routines and handoffs.
+
+- Type: Cookbook
+- Tags: agents, completions, functions
+- URL: /cookbook/examples/orchestrating_agents
+- Created: 2024-10-10
+- Updated: 2024-10-10
+
+## Summary
+Cookbook for orchestrating agent workflows with routines and handoffs.
+
+## Details
+Cookbook for orchestrating agent workflows with routines and handoffs.
+
+---
+
+# Prompt Caching 101
+
+> Cookbook to reduce latency and cost using OpenAI prompt caching.
+
+- Type: Cookbook
+- Tags: completions, cost, latency, prompt caching
+- URL: /cookbook/examples/prompt_caching101
+- Created: 2024-10-01
+- Updated: 2024-10-01
+
+## Summary
+Cookbook to reduce latency and cost using OpenAI prompt caching.
+
+## Details
+Cookbook to reduce latency and cost using OpenAI prompt caching.
+
+---
+
+# Sora 2 Prompting Guide
+
+> Cookbook to craft effective video prompts for Sora 2 generation.
+
+- Type: Cookbook
+- Tags: prompt, sora
+- URL: /cookbook/examples/sora/sora2_prompting_guide
+- Created: 2026-03-12
+- Updated: 2026-03-12
+
+## Summary
+Cookbook to craft effective video prompts for Sora 2 generation.
+
+## Details
+Cookbook to craft effective video prompts for Sora 2 generation.
+
+---
+
+# Transcribing User Audio with a Separate Realtime Request
+
+> Cookbook to transcribe user audio using out-of-band Realtime sessions.
+
+- Type: Cookbook
+- Tags: audio, realtime, speech, transcription
+- URL: /cookbook/examples/realtime_out_of_band_transcription
+- Created: 2025-11-20
+- Updated: 2025-11-20
+
+## Summary
+Cookbook to transcribe user audio using out-of-band Realtime sessions.
+
+## Details
+Cookbook to transcribe user audio using out-of-band Realtime sessions.
+
+---
+
+# Verifying gpt-oss implementations
+
+> The OpenAI gpt-oss models are introducing a lot of new concepts to the open-model ecosystem and getting them to perform as expected might take some time. This g
+
+- Type: Cookbook
+- Tags: gpt-oss, gpt-oss-providers, open-models
+- URL: /cookbook/articles/gpt-oss/verifying-implementations
+- Created: 2025-08-11
+- Updated: 2025-08-11
+
+## Summary
+The OpenAI gpt-oss models are introducing a lot of new concepts to the open-model ecosystem and getting them to perform as expected might take some time. This g
+
+## Details
+The OpenAI gpt-oss models are introducing a lot of new concepts to the open-model ecosystem and getting them to perform as expected might take some time. This g
+
+---
+
+# Docs MCP
+
+OpenAI hosts a public Model Context Protocol (MCP) server for documentation on `developers.openai.com`, `platform.openai.com`, and `learn.chatgpt.com`.
+
+**Server URL (streamable HTTP):** `https://developers.openai.com/mcp`
+
+## What it provides
+
+- Read-only access to OpenAI developer documentation (search + page content).
+- A way to pull documentation into your agent's context while you work.
+
+This MCP server is documentation-only. It does not call the OpenAI API on your
+  behalf.
+
+## Quickstart
+
+
+
+  
+
+    You can connect Codex to [MCP servers](https://developers.openai.com/codex/extend/mcp) in the [CLI](https://developers.openai.com/codex/cli) or [IDE extension](https://developers.openai.com/codex/ide). The configuration is shared between both so you only have to set it up once.
+
+    Add the server using the Codex CLI:
+
+```bash
+codex mcp add openaiDeveloperDocs --url https://developers.openai.com/mcp
+```
+
+    Verify it's configured:
+
+```bash
+codex mcp list
+```
+
+    Alternatively, you can add it in `~/.codex/config.toml` directly:
+
+```toml
+[mcp_servers.openaiDeveloperDocs]
+url = "https://developers.openai.com/mcp"
+```
+
+    To have Codex reliably use the MCP server, add this snippet to your `AGENTS.md`:
+
+```text
+Always use the OpenAI developer documentation MCP server if you need to work with the OpenAI API, plugins, ChatGPT, Codex,… without me having to explicitly ask.
+```
+
+  
+
+
+  
+
+    VS Code supports MCP servers when using GitHub Copilot in Agent mode.
+
+    Click the following link to add the Docs MCP to VS Code:
+
+    Alternatively, you can manually add a `.vscode/mcp.json` in your project root:
+
+```json
+{
+  "servers": {
+    "openaiDeveloperDocs": {
+      "type": "http",
+      "url": "https://developers.openai.com/mcp"
+    }
+  }
+}
+```
+
+    To have VS Code reliably use the MCP server, add this snippet to your `AGENTS.md`:
+
+```text
+Always use the OpenAI developer documentation MCP server if you need to work with the OpenAI API, plugins, ChatGPT, Codex,… without me having to explicitly ask.
+```
+
+    Open Copilot Chat, switch to **Agent** mode, enable the server in the tools picker, and ask an OpenAI-related question like:
+
+> Look up the request schema for Responses API tools in the OpenAI developer docs and summarize the required fields.
+
+  
+
+
+  
+
+    Cursor has native MCP support and reads configuration from `mcp.json`.
+
+    Install with Cursor:
+
+    Alternatively, create a `~/.cursor/mcp.json` (macOS/Linux) and add:
+
+```json
+{
+  "mcpServers": {
+    "openaiDeveloperDocs": {
+      "url": "https://developers.openai.com/mcp"
+    }
+  }
+}
+```
+
+    To have Cursor reliably use the MCP server, add this snippet to your `AGENTS.md`:
+
+```text
+Always use the OpenAI developer documentation MCP server if you need to work with the OpenAI API, plugins, ChatGPT, Codex,… without me having to explicitly ask.
+```
+
+    Restart Cursor and ask Cursor's agent an OpenAI-related question like:
+
+> Look up the request schema for Responses API tools in the OpenAI developer docs and summarize the required fields.
+
+  
+
+
+  
+
+    Claude Code supports remote HTTP MCP servers through the `claude mcp` CLI.
+
+    Add the Docs MCP server from the project where you use Claude Code:
+
+```bash
+claude mcp add --transport http openaiDeveloperDocs https://developers.openai.com/mcp
+```
+
+    Verify it's configured:
+
+```bash
+claude mcp list
+```
+
+    To make the server available across all Claude Code projects on your machine, add it with user scope:
+
+```bash
+claude mcp add --transport http --scope user openaiDeveloperDocs https://developers.openai.com/mcp
+```
+
+    In Claude Code, run `/mcp` to confirm the server is connected. Then ask an OpenAI-related question like:
+
+> Look up the request schema for Responses API tools in the OpenAI developer docs and summarize the required fields.
+
+  
+
+
+
+
+## Tips
+
+- If you don't have the snippet in the AGENTS.md file, you need to explicitly tell your agent to consult the Docs MCP server for the answer.
+- If you have more than one MCP server, keep server names short and descriptive to aid the agent in selecting the server.
+
+## OpenAI Docs Skill
+
+If you use skills in your AI tooling, pair this MCP server with the
+[OpenAI Docs Skill](https://github.com/openai/skills/blob/main/skills/.curated/openai-docs/SKILL.md).
+It tells the agent to use Docs MCP tools first for OpenAI questions, then fall back to official OpenAI domains.
+
+1. Install the skill from the [OpenAI skills repository](https://github.com/openai/skills).
+2. Confirm you configured this Docs MCP server at `https://developers.openai.com/mcp`.
+3. Enable the skill for your project or session in your agent tooling.
+4. Ask OpenAI product/API questions and request citations so answers stay traceable to docs sources.
+
+---
+
+# OpenAI Developers plugin
+
+The OpenAI Developers plugin helps you build AI applications and agents in
+ChatGPT and Codex with OpenAI Platform access and OpenAI API setup guidance.
+ChatGPT and Codex share its listing in the universal plugin directory.
+Adaptations for Claude Code and Cursor bundle the portable developer skills and
+public OpenAI Docs MCP server without the Codex-specific Platform connector. In
+Codex, the plugin works with the OpenAI Docs skill bundled with your install.
+
+It includes:
+
+- **OpenAI API Platform:** connect ChatGPT or Codex to the
+  [OpenAI API Platform](https://platform.openai.com/).
+- **OpenAI Docs MCP:** use current OpenAI documentation from Claude Code or
+  Cursor.
+- **API key setup:** create, save, and connect a project API key from Codex, or
+  get guided local `OPENAI_API_KEY` setup in Claude Code and Cursor.
+- **Agents SDK:** build and deploy OpenAI Agents SDK apps from an idea, a repo,
+  or a prior Codex task.
+- **API migration:** when your installation includes the migration skill, migrate
+  existing LLM apps and agents to OpenAI or improve their Responses API
+  integration through changes designed to preserve behavior and improve
+  performance and efficiency. Apply agreed changes incrementally without
+  requiring a full rewrite.
+- **Troubleshooting:** identify common OpenAI API failures and route
+  you to the right next step.
+
+## Get started with Codex
+
+If you are new to Codex, start here before installing the plugin:
+
+1. [Download the ChatGPT desktop app](https://developers.openai.com/codex/app#getting-started) for macOS or Windows.
+2. Follow the [Codex quickstart](https://developers.openai.com/codex/quickstart) to sign in, choose a
+   project, and send your first message.
+
+## Install the plugin
+
+
+
+  
+
+    [Install the OpenAI Developers plugin](codex://plugins/install/openai-developers?marketplace=openai-curated)
+  
+
+
+  
+
+    
+
+    1. Open Codex
+
+       Start Codex from your terminal:
+
+       ```bash
+       codex
+       ```
+
+
+    2. Open the plugin browser
+
+       Run:
+
+       ```text
+       /plugins
+       ```
+
+
+    3. Install the plugin
+
+       Search for **OpenAI Developers**, open it, and select `Install plugin`.
+
+    4. Complete any setup prompts
+
+       If Codex asks you to connect the bundled OpenAI Platform app, complete
+       that setup so the plugin can create project API keys when needed.
+
+    5. Start a new chat
+
+       Start a new chat before using the plugin for the first time.
+    
+
+
+  
+
+
+  
+
+    
+
+    1. Open the plugin settings
+
+       In the Claude app, open **Settings**, then select **Plugins**.
+
+    2. Add the marketplace
+
+       Select **Add** in the top-right corner, then choose **Add Marketplace**.
+       In the modal, select **Add from a repository**.
+
+    3. Add the repository
+
+       Enter `https://github.com/openai/openai-developers-for-claude` and select
+       **Sync**. Do not append a `.git` suffix.
+
+    4. Install the plugin
+
+       When **OpenAI Developers** appears, open it and select **Install**.
+    
+
+
+  
+
+
+  
+
+    
+
+    1. Add the plugin marketplace
+
+       In Claude Code, run:
+
+       ```text
+       /plugin marketplace add openai/openai-developers-for-claude
+       ```
+
+
+    2. Install the plugin
+
+       Run:
+
+       ```text
+       /plugin install openai-developers@openai-developers
+       ```
+
+
+    3. Start a new session
+
+       Start a new Claude Code session before using the plugin for the first
+       time.
+    
+
+
+  
+
+
+  
+
+    
+
+    1. Open the plugin settings
+
+       In Cursor, open **Settings**, then select **Plugins**.
+
+    2. Add the repository
+
+       Paste `https://github.com/openai/openai-developers-for-cursor` into the
+       plugin search box.
+
+    3. Install the plugin
+
+       When **OpenAI Developers** appears, open it and select **Install**.
+    
+
+
+  
+
+
+
+
+## Use the plugin
+
+After installation, start building with your agent. ChatGPT or Codex can use
+the plugin automatically when the task calls for OpenAI Platform interactions,
+such as creating API keys or troubleshooting API issues. Claude Code and Cursor
+can use the plugin's skills and bundled Docs MCP server for OpenAI API, model,
+Agents SDK, and plugin guidance.
+
+The plugin is useful when you want your coding agent to:
+
+- build an app or agent that uses the OpenAI API
+- set up OpenAI API access for the app you are building
+- diagnose common OpenAI API errors and explain the next step.
+
+### Migrate an existing app
+
+When the migration skill is installed, try:
+
+```text
+Migrate this app to use OpenAI Responses API best practices.
+```
+
+
+## Sample prompts
+
+<h3 className="not-prose mt-6 mb-3 text-base leading-6 font-medium text-default">
+  Build a new app
+</h3>
+
+
+
+  <h3 className="not-prose mt-8 mb-3 text-base leading-6 font-medium text-default">
+  Improve an existing app
+</h3>
+
+---
+
+# Agentic Commerce Protocol
+
+> Design flows for embedded commerce in ChatGPT.
+
+- Type: Guide
+- Tags: commerce
+- URL: /commerce
+- Created: 2025-09-29
+- Updated: 2025-09-29
+
+## Summary
+Docs for the Agentic Commerce Protocol
+
+## Details
+Docs for the Agentic Commerce Protocol.
+
+---
+
+# Agents SDK quickstart
+
+> Step-by-step guide to quickly build agents with the OpenAI Agents SDK.
+
+- Type: Guide
+- Tags: agents
+- URL: https://openai.github.io/openai-agents-python/quickstart/
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Walkthrough for configuring and running your first agent. — agents, Agents SDK, agentic, tool calling
+
+## Details
+Provides instructions for setting up the Agents SDK and deploying a basic agent.
+
+---
+
+# API deployment checklist
+
+> Checklist for tuning Responses API applications before launch.
+
+- Type: Guide
+- Tags: responses, optimization, agents
+- URL: /api/docs/guides/deployment-checklist
+- Created: 2026-04-17
+- Updated: 2026-04-17
+
+## Summary
+Review Responses API settings for production quality, latency, cost, reliability, and data handling.
+
+## Details
+Covers reasoning effort, verbosity, tool search, built-in tools, compaction, encrypted reasoning content, background mode, and WebSocket mode.
+
+---
+
+# Audio & speech guide
+
+> Overview of approaches for audio processing and speech in applications.
+
+- Type: Guide
+- Tags: speech
+- URL: https://platform.openai.com/docs/guides/audio
+- Created: 2025-07-21
+- Updated: 2025-07-21
+
+## Summary
+Covers audio streaming, speech synthesis, and related APIs.
+
+## Details
+Introduces core concepts for handling audio and speech with OpenAI models.
+
+---
+
+# Background mode guide
+
+> Guide to running tasks in the background with Responses.
+
+- Type: Guide
+- Tags: responses
+- URL: https://platform.openai.com/docs/guides/background
+- Created: 2025-07-22
+- Updated: 2025-08-13
+
+## Summary
+Shows how to handle long-running actions asynchronously. — Responses API, tools, function calling
+
+## Details
+Covers patterns for deferring work and delivering results later.
+
+---
+
+# Batch API guide
+
+> Guide on how to use the Batch API to reduce costs
+
+- Type: Guide
+- Tags: tools, search
+- URL: https://platform.openai.com/docs/guides/batch
+- Created: 2025-07-22
+- Updated: 2025-08-13
+
+## Summary
+Describes how to use the Batch API to reduce costs
+
+## Details
+Provides instructions for enabling the Batch API within your applications.
+
+---
+
+# Building agents guide
+
+> Official guide to building agents using the OpenAI platform.
+
+- Type: Guide
+- Tags: agents
+- URL: https://platform.openai.com/docs/guides/agents
+- Created: 2025-07-18
+- Updated: 2025-08-13
+
+## Summary
+This guide describes how to create and manage agents. — Agents SDK, agentic, tool calling
+
+## Details
+Walks through agent architecture and best practices.
+
+---
+
+# Building guardrails for agents
+
+> Guide to implementing safeguards and guardrails in agent applications.
+
+- Type: Guide
+- Tags: agents, safety
+- URL: https://openai.github.io/openai-agents-python/guardrails/
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Outlines approaches to ensure safe and reliable agent behavior. — agents, Agents SDK, agentic, tool calling, guardrails, safety
+
+## Details
+Covers common issues like hallucinations and how to mitigate them with guardrails.
+
+---
+
+# Built-in tools guide
+
+> Guide to using OpenAI's built-in tools with the Responses API.
+
+- Type: Guide
+- Tags: tools
+- URL: https://platform.openai.com/docs/guides/tools?api-mode=responses
+- Created: 2025-07-18
+- Updated: 2025-08-13
+
+## Summary
+Details available built-in tools and their usage. — tool calling
+
+## Details
+Provides instructions and examples for integrating built-in tools.
+
+---
+
+# Code interpreter guide
+
+> Guide to using the built-in code interpreter tool.
+
+- Type: Guide
+- Tags: tools, code
+- URL: https://platform.openai.com/docs/guides/tools-code-interpreter
+- Created: 2025-07-22
+- Updated: 2025-07-22
+
+## Summary
+Shows how to run computations and analyze data via the code interpreter.
+
+## Details
+Includes setup instructions and examples for leveraging the interpreter in Responses.
+
+---
+
+# Computer Use API guide
+
+> Guide to using the Computer Use API (CUA).
+
+- Type: Guide
+- Tags: cua
+- URL: https://platform.openai.com/docs/guides/tools-computer-use
+- Created: 2025-07-18
+- Updated: 2025-08-13
+
+## Summary
+Introduces features of the Computer Use API. — computer use based on our computer-using agent (CUA), computer-using agent (CUA)
+
+## Details
+Covers setup and practical examples for automating tasks.
+
+---
+
+# Conversation state guide
+
+> Guide for managing conversation state with the Responses API.
+
+- Type: Guide
+- Tags: responses
+- URL: https://platform.openai.com/docs/guides/conversation-state?api-mode=responses
+- Created: 2025-07-22
+- Updated: 2025-08-13
+
+## Summary
+Explains how to persist context for multi-turn conversations. — Responses API, tools, function calling
+
+## Details
+Covers techniques to store and retrieve state when using the Responses API.
+
+---
+
+# Docs MCP
+
+> Search and read OpenAI developer docs from your editor using MCP.
+
+- Type: Guide
+- Tags: mcp
+- URL: /learn/docs-mcp
+- Created: 2026-01-06
+- Updated: 2026-05-13
+
+## Summary
+Quickstart for connecting to OpenAI's developer docs MCP server from common coding agents and editors. - mcp, tools, docs
+
+## Details
+Shows how to add the Docs MCP server in Codex, VS Code, Cursor, and Claude Code for documentation lookups while you code.
+
+---
+
+# Evals Best Practices
+
+> Best practices for designing and running evals.
+
+- Type: Guide
+- Tags: evals
+- URL: https://platform.openai.com/docs/guides/evaluation-best-practices
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Guidance on planning, running, and iterating on evaluations. — evals
+
+## Details
+Covers evaluation workflows, rubrics, and practical tips for maintaining quality.
+
+---
+
+# File search guide
+
+> Guide to retrieving context from files using the Responses API.
+
+- Type: Guide
+- Tags: tools, search
+- URL: https://platform.openai.com/docs/guides/tools-file-search
+- Created: 2025-07-22
+- Updated: 2025-08-13
+
+## Summary
+Describes indexing and querying files for grounded responses. — file search, retrieval
+
+## Details
+Provides instructions for enabling file search within your agents.
+
+---
+
+# Fine-tuning best practices
+
+> Recommendations for effective and efficient model fine-tuning.
+
+- Type: Guide
+- Tags: fine-tuning
+- URL: https://platform.openai.com/docs/guides/fine-tuning-best-practices#page-top
+- Created: 2025-07-21
+- Updated: 2025-07-21
+
+## Summary
+Lists approaches to maximize quality while controlling costs during fine-tuning.
+
+## Details
+Includes tips on data preparation, parameter choices, and monitoring.
+
+---
+
+# Fine-tuning guide
+
+> Comprehensive guide to fine-tuning OpenAI models.
+
+- Type: Guide
+- Tags: fine-tuning
+- URL: https://platform.openai.com/docs/guides/fine-tuning
+- Created: 2025-07-18
+- Updated: 2025-07-18
+
+## Summary
+Steps and best practices for model fine-tuning.
+
+## Details
+Covers data preparation, training, and deployment.
+
+---
+
+# Flex processing guide
+
+> Guide on how to reduce costs with flex processing
+
+- Type: Guide
+- Tags: tools, search
+- URL: https://platform.openai.com/docs/guides/flex-processing
+- Created: 2025-07-22
+- Updated: 2025-08-13
+
+## Summary
+Describes how to reduce costs with flex processing
+
+## Details
+Provides instructions for enabling flex processing within your applications.
+
+---
+
+# Function calling guide
+
+> Introduction to function calling with OpenAI models.
+
+- Type: Guide
+- Tags: tools
+- URL: https://platform.openai.com/docs/guides/function-calling
+- Created: 2025-08-03
+- Updated: 2025-08-13
+
+## Summary
+Function calling guide. function calling, tool calling
+
+---
+
+# Getting Started with Evals
+
+> Step-by-step guide to setting up your first eval.
+
+- Type: Guide
+- Tags: evals
+- URL: https://platform.openai.com/docs/guides/evaluation-getting-started
+- Created: 2025-08-13
+- Updated: 2025-08-13
+
+## Summary
+Quickstart for creating and running evaluations. — evals
+
+## Details
+Covers the basics of defining datasets, scoring, and interpreting results.
+
+---
+
+# Graders
+
+> Guide to using graders for evaluations.
+
+- Type: Guide
+- Tags: evals
+- URL: https://platform.openai.com/docs/guides/graders
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Explains grader types and how to score model outputs. — evals
+
+## Details
+Includes examples for setting up and interpreting grader results.
+
+---
+
+# Image generation guide
+
+> Guide to generating images using OpenAI models.
+
+- Type: Guide
+- Tags: imagegen
+- URL: https://platform.openai.com/docs/guides/image-generation
+- Created: 2025-07-18
+- Updated: 2025-08-13
+
+## Summary
+Instructions for creating images with OpenAI's image models. — image generation
+
+## Details
+Covers parameters and best practices for image generation.
+
+---
+
+# Keep costs low & accuracy high
+
+> Guide on balancing cost efficiency with model accuracy.
+
+- Type: Guide
+- Tags: optimization
+- URL: https://platform.openai.com/docs/guides/reasoning-best-practices#how-to-keep-costs-low-and-accuracy-high
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Offers strategies to reduce expenses without sacrificing quality. — latency, cost, performance
+
+## Details
+Discusses batching, caching, and other techniques to manage spend while maintaining accuracy.
+
+---
+
+# Latency optimization guide
+
+> Best practices for reducing model response latency.
+
+- Type: Guide
+- Tags: optimization
+- URL: https://platform.openai.com/docs/guides/latency-optimization
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Provides techniques to speed up API calls and model execution. — latency, cost, performance
+
+## Details
+Covers batching, streaming, and other methods to achieve low-latency performance.
+
+---
+
+# LLM correctness and consistency
+
+> Best practices for achieving accurate and consistent model outputs.
+
+- Type: Guide
+- Tags: optimization
+- URL: https://platform.openai.com/docs/guides/optimizing-llm-accuracy
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Covers techniques like RAG to improve model reliability. — latency, cost, performance
+
+## Details
+Discusses strategies for maintaining correctness and consistency across deployments.
+
+---
+
+# MCP guide
+
+> Guide to using the Model Context Protocol for portable tools.
+
+- Type: Guide
+- Tags: mcp, tools
+- URL: https://platform.openai.com/docs/guides/tools-remote-mcp
+- Created: 2025-07-22
+- Updated: 2025-08-13
+
+## Summary
+Explains how MCP enables tool portability and composition across apps. — Model Customization Platform (MCP)
+
+## Details
+Provides setup steps and examples for integrating MCP with your tools.
+
+---
+
+# Model distillation overview
+
+> Overview of distillation techniques for creating efficient models.
+
+- Type: Guide
+- Tags: distillation
+- URL: https://platform.openai.com/docs/guides/distillation#page-top
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Introduces the process and benefits of distilling larger models into smaller ones. — distillation
+
+## Details
+Covers key concepts and practical steps for applying model distillation to improve performance and reduce costs.
+
+---
+
+# Model optimization guide
+
+> Guide on optimizing OpenAI models for performance and cost.
+
+- Type: Guide
+- Tags: optimization, evals
+- URL: https://platform.openai.com/docs/guides/model-optimization
+- Created: 2025-07-18
+- Updated: 2025-08-13
+
+## Summary
+Strategies for efficient and effective model usage. — latency, cost, performance
+
+## Details
+Covers tuning parameters and deployment considerations.
+
+---
+
+# OpenAI Developers plugin
+
+> Install and use the OpenAI Developers plugin in Codex, Claude Code, or Cursor.
+
+- Type: Guide
+- Tags: codex, plugins
+- URL: /learn/developers-codex-plugin
+- Created: 2026-04-30
+- Updated: 2026-06-23
+
+## Summary
+Install and use the OpenAI Developers plugin in Codex, Claude Code, or Cursor to set up API access, use current OpenAI docs, and troubleshoot OpenAI API issues.
+
+## Details
+Shows how to install the OpenAI Developers plugin in the ChatGPT desktop app and Codex CLI, Claude app and CLI, and Cursor, then use it with practical prompts for OpenAI API work.
+
+---
+
+# OpenAI models page
+
+> Overview of the models available on the OpenAI platform.
+
+- Type: Guide
+- Tags: agents
+- URL: https://platform.openai.com/docs/models
+- Created: 2025-08-03
+- Updated: 2025-08-13
+
+## Summary
+OpenAI models page. - models
+
+---
+
+# Orchestrating multiple agents
+
+> Guide to coordinating multiple agents with shared context.
+
+- Type: Guide
+- Tags: agents
+- URL: https://openai.github.io/openai-agents-python/multi_agent/
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Strategies for managing multi-agent collaboration and communication. — agents, Agents SDK, agentic, tool calling
+
+## Details
+Explains patterns for orchestrating several agents to tackle complex tasks.
+
+---
+
+# Predicted outputs guide
+
+> Guide to understanding and using predicted outputs.
+
+- Type: Guide
+- Tags: optimization
+- URL: https://platform.openai.com/docs/guides/predicted-outputs
+- Created: 2025-07-18
+- Updated: 2025-08-13
+
+## Summary
+Explains how predicted outputs can optimize workflows. — latency, cost, performance
+
+## Details
+Provides guidance on interpreting and leveraging predictions.
+
+---
+
+# Production best practices
+
+> Guide on best practices for running AI applications in production
+
+- Type: Guide
+- Tags: optimization
+- URL: https://platform.openai.com/docs/guides/production-best-practices
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+A guide on best practices for running AI applications in production, with tips on cost management, latency optimization, security and compliance.
+
+---
+
+# Prompt engineering guide
+
+> Detailed guide on prompt engineering strategies.
+
+- Type: Guide
+- Tags: transcription
+- URL: https://platform.openai.com/docs/guides/realtime-transcription
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Prompt engineering with few-shot prompting, message formatting, and more.
+
+## Details
+Includes advanced options and multilingual considerations.
+
+---
+
+# Prompt Optimizer
+
+> Guide to refining prompts with the Prompt Optimizer.
+
+- Type: Guide
+- Tags: evals, optimization
+- URL: https://platform.openai.com/docs/guides/prompt-optimizer
+- Created: 2025-08-13
+- Updated: 2025-08-13
+
+## Summary
+Shows how to iterate on prompts using optimization workflows. — evals, optimization
+
+## Details
+Explains how to evaluate prompt quality and apply automated improvements.
+
+---
+
+# RAG technique overview
+
+> Overview of retrieval-augmented generation techniques.
+
+- Type: Guide
+- Tags: rag
+- URL: https://platform.openai.com/docs/guides/optimizing-llm-accuracy#retrieval-augmented-generation-rag
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Introduces using external data sources to enhance model responses. — retrieval-augmented generation (RAG), retrieval, RAG
+
+## Details
+Explains core concepts and setup for retrieval-augmented generation workflows.
+
+---
+
+# Rate limits guide
+
+> Guide to understanding and managing rate limits
+
+- Type: Guide
+- Tags: production
+- URL: https://platform.openai.com/docs/guides/rate-limits
+- Created: 2025-08-14
+- Updated: 2025-08-14
+
+## Summary
+Explains how to understand and manage rate limits
+
+---
+
+# Realtime and audio guide
+
+> Guide to choosing realtime and audio build paths.
+
+- Type: Guide
+- Tags: realtime
+- URL: https://platform.openai.com/docs/guides/realtime
+- Created: 2025-07-21
+- Updated: 2026-05-05
+
+## Summary
+Shows how to build realtime voice agents, live translation, and streaming transcription. — realtime, voice, low latency
+
+## Details
+Covers common audio use cases, Realtime API architecture, model choices, connection methods, and related guides.
+
+---
+
+# Realtime intro
+
+> Introduction to building realtime voice applications.
+
+- Type: Guide
+- Tags: realtime
+- URL: https://platform.openai.com/docs/guides/realtime-conversations
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Outlines key concepts for low-latency voice interactions. — realtime, streaming, low latency
+
+## Details
+Explains architectures enabling realtime streaming and responses.
+
+---
+
+# Realtime prompting guide
+
+> Guide to prompting and tuning realtime voice models.
+
+- Type: Guide
+- Tags: realtime, prompting
+- URL: https://platform.openai.com/docs/guides/realtime-models-prompting
+- Created: 2026-05-05
+- Updated: 2026-05-05
+
+## Summary
+Shows how to prompt realtime voice agents, including Realtime 2 reasoning, preambles, tools, and exact entity capture.
+
+## Details
+Includes model-specific guidance, prompt structure, reasoning effort, preambles, tool policies, and migration guidance.
+
+---
+
+# Realtime tool delegation guide
+
+> Guide on delegating tasks through tools in realtime agents.
+
+- Type: Guide
+- Tags: agents, realtime
+- URL: https://openai.github.io/openai-agents-js/guides/voice-agents/build/#delegation-through-tools
+- Created: 2025-07-18
+- Updated: 2025-08-13
+
+## Summary
+Explains using tools to delegate actions in realtime voice agents. — Agents SDK, agentic, tool calling, streaming, low latency
+
+## Details
+Covers setup and best practices for realtime tool delegation.
+
+---
+
+# Realtime transcription guide
+
+> Guide for implementing streaming realtime speech transcription.
+
+- Type: Guide
+- Tags: realtime, transcription
+- URL: https://platform.openai.com/docs/guides/realtime-transcription
+- Created: 2025-07-21
+- Updated: 2026-05-05
+
+## Summary
+Shows how to stream realtime audio for transcript deltas. — realtime, voice, streaming, low latency, transcription
+
+## Details
+Includes setup steps, streaming event handling, and latency-versus-accuracy guidance.
+
+---
+
+# Realtime translation guide
+
+> Guide to performing realtime speech translation.
+
+- Type: Guide
+- Tags: realtime, translation
+- URL: https://platform.openai.com/docs/guides/realtime-translation
+- Created: 2025-07-21
+- Updated: 2026-05-05
+
+## Summary
+Shows how to build live speech translation with the Realtime API. — realtime, voice, streaming, low latency, translation, audio
+
+## Details
+Includes translation session architecture, WebRTC and WebSocket usage, and production guidance.
+
+---
+
+# Reasoning best practices
+
+> Prompting and optimization tips for reasoning models
+
+- Type: Guide
+- Tags: reasoning
+- URL: https://platform.openai.com/docs/guides/reasoning-best-practices
+- Created: 2025-08-03
+- Updated: 2025-08-13
+
+## Summary
+Best practices for prompting reasoning models — reasoning, planning, tool use, structured outputs.
+
+---
+
+# Reasoning guide
+
+> Overview of what reasoning is and how to prompt reasoning models
+
+- Type: Guide
+- Tags: reasoning
+- URL: https://platform.openai.com/docs/guides/reasoning?api-mode=responses
+- Created: 2025-08-03
+- Updated: 2025-08-13
+
+## Summary
+Overview of reasoning models and how to prompt them — reasoning, planning, tool use, structured outputs.
+
+---
+
+# Responses guide
+
+> Introduction to the Responses API and its endpoints.
+
+- Type: Guide
+- Tags: responses
+- URL: https://platform.openai.com/docs/api-reference/responses
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Documentation overview for using the Responses API. — tools, function calling
+
+## Details
+Explains parameters and examples for integrating the Responses API into applications.
+
+---
+
+# Responses vs. chat completions guide
+
+> Comparison of the Responses API and Chat Completions.
+
+- Type: Guide
+- Tags: responses
+- URL: https://platform.openai.com/docs/guides/responses-vs-chat-completions
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Explains key differences and when to use each API. — Responses API, tools, function calling
+
+## Details
+Highlights capabilities and use cases for both Responses and Chat Completions APIs.
+
+---
+
+# Speech-to-text guide
+
+> Guide for building speech recognition pipelines.
+
+- Type: Guide
+- Tags: stt
+- URL: https://platform.openai.com/docs/guides/speech-to-text
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Provides detailed instructions for accurate STT. — speech-to-text (STT)
+
+## Details
+Includes examples and advanced configuration options.
+
+---
+
+# Speech-to-text intro
+
+> Introduction to speech recognition with OpenAI.
+
+- Type: Guide
+- Tags: stt
+- URL: https://platform.openai.com/docs/guides/speech-to-text
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Covers basics of converting spoken language into text. — speech-to-text (STT)
+
+## Details
+Outlines API usage and common scenarios for STT.
+
+---
+
+# Structured outputs guide
+
+> Guide for producing structured outputs with the Responses API.
+
+- Type: Guide
+- Tags: structured outputs
+- URL: https://platform.openai.com/docs/guides/structured-outputs?api-mode=responses
+- Created: 2025-07-18
+- Updated: 2025-08-13
+
+## Summary
+Explains methods to generate and validate structured data. — structured outputs, JSON, schema
+
+## Details
+Covers schema design and integration tips.
+
+---
+
+# Supervised fine-tuning overview
+
+> Guide to supervised fine-tuning for customizing model behavior.
+
+- Type: Guide
+- Tags: fine-tuning
+- URL: https://platform.openai.com/docs/guides/supervised-fine-tuning
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Explains steps to fine-tune models using supervised datasets. — fine-tuning
+
+## Details
+Covers data preparation, training process, and deployment tips for supervised fine-tuning.
+
+---
+
+# Tools overview guide
+
+> Guide covering realtime delegation through tools.
+
+- Type: Guide
+- Tags: agents, tools
+- URL: https://openai.github.io/openai-agents-js/guides/voice-agents/build/#delegation-through-tools
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Describes how agents can delegate actions via external tools. — Agents SDK, agentic, tool calling
+
+## Details
+Provides best practices and setup instructions for using tools with agents.
+
+---
+
+# Tracing module
+
+> Guide to monitoring and debugging agents with tracing.
+
+- Type: Guide
+- Tags: agents
+- URL: https://openai.github.io/openai-agents-python/tracing/
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Explains how to capture and analyze agent traces for reliability. — agents, Agents SDK, agentic, tool calling
+
+## Details
+Covers setup and interpretation of trace data to debug agent behavior.
+
+---
+
+# Transcription guide
+
+> Detailed guide for building transcription pipelines.
+
+- Type: Guide
+- Tags: transcription
+- URL: https://platform.openai.com/docs/guides/realtime-transcription
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Step-by-step instructions for accurate speech transcription. — audio, speech-to-text (STT)
+
+## Details
+Includes advanced options and multilingual considerations.
+
+---
+
+# Transcription intro
+
+> Introduction to converting speech to text with OpenAI APIs.
+
+- Type: Guide
+- Tags: transcription
+- URL: https://platform.openai.com/docs/guides/speech-to-text#transcriptions
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Provides basics of handling audio inputs for transcription. — speech, speech-to-text (STT)
+
+## Details
+Covers supported formats and basic API usage.
+
+---
+
+# Translation use case
+
+> Overview of building multilingual voice applications.
+
+- Type: Guide
+- Tags: translation
+- URL: https://platform.openai.com/docs/guides/speech-to-text#translations
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Explains scenarios and design for real-time translation. — speech, audio
+
+## Details
+Covers best practices for enabling multi-language conversations.
+
+---
+
+# Vision fine-tuning overview
+
+> Guide to fine-tuning models on vision tasks.
+
+- Type: Guide
+- Tags: fine-tuning
+- URL: https://platform.openai.com/docs/guides/vision-fine-tuning
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Introduces methods to adapt models for vision-related applications. — fine-tuning
+
+## Details
+Covers data preparation and training tips for vision fine-tuning.
+
+---
+
+# Voice agents guide
+
+> Guide to building voice agents using speech-to-speech API.
+
+- Type: Guide
+- Tags: agents, realtime, speech
+- URL: https://platform.openai.com/docs/guides/voice-agents
+- Created: 2025-07-18
+- Updated: 2025-08-13
+
+## Summary
+Explains architecture and setup for realtime voice agents. — Agents SDK, agentic, tool calling, streaming, low latency, speech, audio
+
+## Details
+Details speech processing and realtime interaction techniques.
+
+---
+
+# Voice applications intro
+
+> Introduction to building voice-enabled applications with OpenAI.
+
+- Type: Guide
+- Tags: speech
+- URL: https://platform.openai.com/docs/guides/voice-agents?voice-agent-architecture=speech-to-speech#speech-to-speech-realtime-architecture
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Covers fundamental concepts for voice interactions. — speech, audio
+
+## Details
+Outlines the capabilities of OpenAI's voice models and APIs.
+
+---
+
+# Web search guide
+
+> Guide to using web search with the Responses API.
+
+- Type: Guide
+- Tags: tools, search
+- URL: https://platform.openai.com/docs/guides/tools-web-search
+- Created: 2025-08-14
+- Updated: 2025-08-14
+
+## Summary
+Explains how to use web search with the Responses API.
+
+---
+
+# Working with the Evals API
+
+> Guide to building evaluations with the Evals API.
+
+- Type: Guide
+- Tags: evals
+- URL: https://platform.openai.com/docs/guides/evals
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Explains how to configure and run evaluations with the Evals API. — evals
+
+## Details
+Walks through creating evals, grading outputs, and iterating on results.
+
+---
+
+# 4o image generation intro
+
+> Video introduction to 4o model image generation capabilities.
+
+- Type: Video
+- Tags: imagegen
+- URL: https://www.youtube.com/watch?v=2f3K43FHRKo
+- Created: 2025-07-18
+- Updated: 2025-08-13
+
+## Summary
+Shows how to create images using the 4o model. — image generation
+
+## Details
+Walkthrough of features and examples for 4o image generation.
+
+---
+
+# Balance accuracy, latency, and cost
+
+> Talk on optimizing AI systems for accuracy, speed, and cost.
+
+- Type: Video
+- Tags: optimization
+- URL: https://www.youtube.com/watch?v=Bx6sUDRMx-8
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Shares strategies for achieving the right trade-offs between quality, performance, and expenses. — latency, cost
+
+## Details
+Covers practical approaches to scale models efficiently while maintaining desired accuracy and responsiveness.
+
+---
+
+# Build beautiful frontends with OpenAI Codex
+
+> Learn how OpenAI Codex's multimodal abilities accelerate frontend development.
+
+- Type: Video
+- Tags: codex, frontend
+- URL: https://www.youtube.com/watch?v=fK_bm84N7bs
+- Created: 2025-10-27
+- Updated: 2025-10-27
+
+## Summary
+Shows Codex Cloud turning sketches and photos into responsive interfaces. — codex, frontend
+
+## Details
+Experts capture whiteboard ideas, upload sketches, and iterate on Codex-generated UI code to launch production-ready features.
+
+---
+
+# Build hour — agentic tool calling
+
+> Build hour giving an overview of agentic tool calling.
+
+- Type: Video
+- Tags: responses, agents
+- URL: https://webinar.openai.com/on-demand/d1a99ac5-8de8-43c5-b209-21903d76b5b2
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Shows how agents can call tools to accomplish tasks. — Responses API, function calling, Agents SDK, agentic, tool calling
+
+## Details
+Covers practical examples of integrating external tools in agent workflows.
+
+---
+
+# Build hour — built-in tools
+
+> Build hour giving an overview of built-in tools available in the Responses API.
+
+- Type: Video
+- Tags: responses, agents
+- URL: https://webinar.openai.com/on-demand/c17a0484-d32c-4359-b5ee-d318dad51586
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Shows how agents can call tools to accomplish tasks. — Responses API, function calling, Agents SDK, agentic, tool calling
+
+## Details
+Covers practical examples of integrating external tools in agent workflows.
+
+---
+
+# Building with Open Models
+
+> Talk covering how developers customize and deploy OpenAI’s open models.
+
+- Type: Video
+- Tags: fine-tuning
+- URL: https://www.youtube.com/watch?v=1HL2YHRj270
+- Created: 2025-10-22
+- Updated: 2025-10-22
+
+## Summary
+Explains strategies for adapting open models to specific products and workflows. — open models, customization
+
+## Details
+Walks through real examples of preparing data, fine-tuning, and evaluating open models so they can power production-ready experiences.
+
+---
+
+# Codex code review
+
+> Walkthrough of how Codex drives end-to-end pull request reviews with the new onboarding flow.
+
+- Type: Video
+- Tags: codex, code-review
+- URL: https://www.youtube.com/watch?v=HwbSWVg5Ln4
+- Created: 2025-11-04
+- Updated: 2025-11-04
+
+## Summary
+Shows Codex pairing with developers to triage diffs, leave inline suggestions, and merge confidently. — codex, code review
+
+## Details
+Demonstrates the streamlined onboarding experience for inviting Codex to review repositories plus how the agent reasons about test results, surfaces regressions, and proposes fixes.
+
+---
+
+# Codex for (almost) everything
+
+> See the latest Codex app updates for working across more of the software development lifecycle.
+
+- Type: Video
+- Tags: codex, app
+- URL: https://www.youtube.com/watch?v=Lm7-yFZ5fZQ
+- Created: 2026-04-16
+- Updated: 2026-04-16
+
+## Summary
+Overview of new Codex app updates for working across tools, apps, automations, and more developer workflows.
+
+## Details
+Highlights Codex updates for computer use, plugins, image generation, automations, memory, and deeper developer workflows.
+
+---
+
+# Codex in JetBrains IDEs
+
+> How to use Codex inside JetBrains IDEs like Rider, IntelliJ, PyCharm, and WebStorm.
+
+- Type: Video
+- Tags: codex
+- URL: https://www.youtube.com/watch?v=1XkVsE9-ZK4
+- Created: 2026-01-22
+- Updated: 2026-01-22
+
+## Summary
+Walkthrough of how to use Codex inside your JetBrains IDEs.
+
+## Details
+Shows how to use the JetBrains IDE integration, including how to sign in with ChatGPT, an API key, or a JetBrains AI subscription.
+
+---
+
+# Codex intro
+
+> Introductory video introducing Codex and its capabilities.
+
+- Type: Video
+- Tags: codex
+- URL: https://www.youtube.com/watch?v=hhdpnbfH6NU
+- Created: 2025-07-18
+- Updated: 2025-08-13
+
+## Summary
+Overview of programming with OpenAI Codex.
+
+## Details
+Demonstrates how Codex can help with code generation and editing.
+
+---
+
+# Context Engineering & Coding Agents with Cursor
+
+> Session on structuring context for agent workflows inside the Cursor editor.
+
+- Type: Video
+- Tags: agents, codex
+- URL: https://www.youtube.com/watch?v=3KAI__5dUn0
+- Created: 2025-10-22
+- Updated: 2025-10-22
+
+## Summary
+Discusses context strategies for letting Codex-style agents collaborate in Cursor. — agents, context windows
+
+## Details
+Covers practical techniques for organizing projects, sharing references, and guiding agent actions when pairing Cursor with Codex-powered assistants.
+
+---
+
+# DevDay — distillation breakout
+
+> DevDay session on model distillation techniques.
+
+- Type: Video
+- Tags: distillation
+- URL: https://www.youtube.com/watch?v=CqWpJFK-hOo
+- Created: 2025-07-18
+- Updated: 2025-08-13
+
+## Summary
+Discusses strategies for distilling models effectively. — distillation, devday
+
+## Details
+Provides insights into optimizing models via distillation.
+
+---
+
+# DevDay — optimization breakout
+
+> DevDay session discussing optimization of models and prompts.
+
+- Type: Video
+- Tags: optimization
+- URL: https://www.youtube.com/watch?v=Bx6sUDRMx-8
+- Created: 2025-07-18
+- Updated: 2025-08-13
+
+## Summary
+Tips and strategies for optimizing usage of OpenAI models. — latency, cost, performance
+
+## Details
+Explores techniques to improve performance and cost efficiency.
+
+---
+
+# DevDay — realtime breakout
+
+> DevDay session focused on realtime agent capabilities.
+
+- Type: Video
+- Tags: realtime
+- URL: https://www.youtube.com/watch?v=mM8KhTxwPgs
+- Created: 2025-07-18
+- Updated: 2025-08-13
+
+## Summary
+Covers realtime features and demos shared at DevDay. — voice, streaming, low latency, devday
+
+## Details
+Insights on building responsive agents using realtime APIs.
+
+---
+
+# DevDay — structured outputs breakout
+
+> Session covering structured outputs from DevDay.
+
+- Type: Video
+- Tags: structured outputs
+- URL: https://www.youtube.com/watch?v=kE4BkATIl9c
+- Created: 2025-07-18
+- Updated: 2025-08-13
+
+## Summary
+Explores structured output techniques presented at DevDay. — structured outputs, JSON, schema, devday
+
+## Details
+Highlights best practices for generating structured data.
+
+---
+
+# Introducing the Codex app
+
+> See the Codex app in action and how it helps you build and ship faster.
+
+- Type: Video
+- Tags: codex, app
+- URL: https://www.youtube.com/watch?v=HFM3se4lNiw
+- Created: 2026-02-02
+- Updated: 2026-02-02
+
+## Summary
+Intro walkthrough of the Codex app and its core workflows.
+
+## Details
+Highlights how the Codex app fits into everyday development, from multi tasking to automations and skills.
+
+---
+
+# Launch apps with evaluations
+
+> Video on incorporating evals when deploying AI products.
+
+- Type: Video
+- Tags: evals
+- URL: https://vimeo.com/1105244173
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Shows how evaluations can guide successful product launches. — evals
+
+## Details
+Discusses strategies for measuring and improving model performance using evals before release.
+
+---
+
+# Live Demo Showcase: Tools That 10x Your Codebase
+
+> Live walkthrough of Codex-powered tooling that accelerates software delivery.
+
+- Type: Video
+- Tags: agents, tools
+- URL: https://www.youtube.com/watch?v=-l0OqapibAA
+- Created: 2025-10-22
+- Updated: 2025-10-22
+
+## Summary
+Runs through hands-on demos of toolchains that supercharge coding velocity. — agents, tool calling
+
+## Details
+Demonstrates how Codex-powered agents collaborate with developer tools to refactor, test, and extend codebases during a live session.
+
+---
+
+# MCP intro
+
+> Introduction video to Model Customization Platform (MCP).
+
+- Type: Video
+- Tags: mcp
+- URL: https://vimeo.com/1105243308
+- Created: 2025-07-18
+- Updated: 2025-08-13
+
+## Summary
+Walkthrough of features provided by MCP. — Model Customization Platform (MCP)
+
+## Details
+Highlights customizing models using the platform.
+
+---
+
+# New audio models intro
+
+> Overview video of new audio models for speech and transcription.
+
+- Type: Video
+- Tags: speech, transcription
+- URL: https://www.youtube.com/watch?v=lXb0L16ISAc
+- Created: 2025-07-18
+- Updated: 2025-08-13
+
+## Summary
+Introduces capabilities of the latest OpenAI audio models. — speech, transcription, speech-to-text (STT)
+
+## Details
+Discusses speech synthesis and transcription improvements.
+
+---
+
+# OpenAI Codex in your code editor
+
+> Walkthrough of the Codex IDE extension for VS Code, Cursor, and other forks.
+
+- Type: Video
+- Tags: codex
+- URL: https://www.youtube.com/watch?v=sd21Igx4HtA
+- Created: 2025-10-22
+- Updated: 2025-10-22
+
+## Summary
+Shows how to pair Codex with leading editors and streamline in-editor workflows. — codex, IDE extension
+
+## Details
+Use the Codex IDE extension to chat, edit, and ship code directly from VS Code, Cursor, and other supported environments.
+
+---
+
+# Realtime agent demo
+
+> Video introduction to the TypeScript Agents SDK.
+
+- Type: Video
+- Tags: agents, realtime
+- URL: https://vimeo.com/1105243382
+- Created: 2025-07-18
+- Updated: 2025-08-13
+
+## Summary
+Overview of building realtime agents with the TypeScript SDK. — Agents SDK, agentic, tool calling, voice, streaming, low latency
+
+## Details
+Presents features and setup instructions for the SDK.
+
+---
+
+# Responses API — tools and features
+
+> Overview video of available tools and capabilities in the Responses API.
+
+- Type: Video
+- Tags: responses
+- URL: https://vimeo.com/1105245596
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Demonstrates built-in tools and other features for building conversational apps. — Responses API, function calling, tool calling
+
+## Details
+Walks through practical examples of tool usage within the Responses API.
+
+---
+
+# Shipping with Codex
+
+> DevDay talk on building, testing, and delivering products with Codex.
+
+- Type: Video
+- Tags: codex, production
+- URL: https://www.youtube.com/watch?v=Gr41tYOzE20
+- Created: 2025-10-22
+- Updated: 2025-10-22
+
+## Summary
+Shares lessons from teams shipping real software with Codex end-to-end. — codex, product delivery
+
+## Details
+Highlights best practices for moving from prototype to production with Codex, including collaboration patterns, tooling integrations, and release workflows.
+
+---
+
+# Sora, ImageGen, and Codex: The Next Wave of Creative Production
+
+> Panel discussion on combining Sora, ImageGen, and Codex for media creation.
+
+- Type: Video
+- Tags: sora, imagegen, codex
+- URL: https://www.youtube.com/watch?v=70ush8Vknx8
+- Created: 2025-10-22
+- Updated: 2025-10-22
+
+## Summary
+Explores multimodal pipelines that link video, image, and code generation tools. — creative workflows
+
+## Details
+Speakers share production-ready recipes that mix Sora motion graphics, ImageGen assets, and Codex automation to accelerate creative teams.
+
+---
+
+# Unlock agentic power — Agents SDK
+
+> Video demonstrating advanced capabilities of the Agents SDK.
+
+- Type: Video
+- Tags: agents
+- URL: https://vimeo.com/1105245234
+- Created: 2025-07-21
+- Updated: 2025-08-13
+
+## Summary
+Explores orchestration and complex behaviors with the Agents SDK. — agentic, tool calling
+
+## Details
+Shows techniques to design sophisticated agent workflows using the SDK.
+
+---
+
+# Using OpenAI Codex CLI with GPT-5-Codex
+
+> Overview of running the Codex CLI locally with GPT-5-Codex.
+
+- Type: Video
+- Tags: codex
+- URL: https://www.youtube.com/watch?v=iqNzfK4_meQ
+- Created: 2025-10-22
+- Updated: 2025-10-22
+
+## Summary
+Covers installation, authentication, and power-user workflows for the Codex CLI. — codex, CLI
+
+## Details
+Shows how to install the open-source Codex CLI, select models, and use the agent to read, modify, and run code in local projects.

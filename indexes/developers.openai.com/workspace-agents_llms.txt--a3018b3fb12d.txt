@@ -1,0 +1,14 @@
+# Workspace Agents
+
+> Trigger published ChatGPT workspace agents from backend systems and automations.
+
+Use this as a compact map of Workspace Agents docs. Each page has a Markdown twin at `/workspace-agents/<slug>.md`.
+
+## Documentation sets
+- [Combined Workspace Agents docs](https://developers.openai.com/workspace-agents/llms-full.txt): Single-file Markdown export of Workspace Agents docs.
+
+## Authentication
+- [Authenticate with Workspace Agent access tokens](https://developers.openai.com/workspace-agents/authentication.md): Provision and use bearer credentials for the Workspace Agents API.
+
+## Trigger Runs
+- [Trigger workspace agent runs](https://developers.openai.com/workspace-agents/trigger-runs.md): Kick off ChatGPT workspace agents from server-side systems or automations.

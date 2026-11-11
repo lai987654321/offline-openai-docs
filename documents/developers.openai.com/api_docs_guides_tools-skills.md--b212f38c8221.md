@@ -1,0 +1,750 @@
+# Skills
+
+> For the complete documentation index, see [llms.txt](/llms.txt). Markdown versions of documentation pages are available by appending `.md` to the page URL.
+
+Agent Skills give an agent reusable instructions and supporting files for a task. Use them with Responses API shell tools or make them available in an [Agents API sandbox](#agents-api).
+
+The upload, attachment, and versioning instructions below describe Responses API shell tools. Agents API sessions discover skills from directories in their sandbox.
+
+The Responses API supports Skills in two form factors: local execution and
+  hosted, container-based execution. To run code on your own machine, use the
+  local execution mode of the [shell tool](https://developers.openai.com/api/docs/guides/tools-shell).
+
+## What's a skill
+
+A skill is a directory of files with a `SKILL.md` manifest (front matter + instructions). Skills are modular instructions you can use to codify processes and conventions, from company style guides to multi-step workflows. Uploaded skills use versioned bundles.
+
+Skills are compatible with the open [Agent Skills standard](https://agentskills.io/home).
+
+Example SKILL.md
+
+```markdown
+---
+name: basic-math
+description: Add or multiply numbers.
+---
+
+Use this skill when you need a quick sum or product of numbers.
+```
+
+
+During skill discovery, the model sees the skill's name and description. Write a description that explains both what the skill does and when to use it. For example, "Review and redline vendor agreements using the fallback clauses" gives the model more useful context than "Helps with legal work."
+
+Keep the main instructions in `SKILL.md` and link to supporting files as needed:
+
+```text
+review-pr/
+├── SKILL.md
+├── references/
+│   └── review-guidelines.md
+├── scripts/
+│   └── check-changes.sh
+└── assets/
+    └── review-template.md
+```
+
+Use `references/` for background material, `scripts/` for repeatable actions, and `assets/` for reusable templates.
+
+## Create a skill
+
+You can upload a directory as multipart form data or upload a `.zip` that contains a single top-level folder.
+
+### Option 1: Directory upload (multipart)
+
+Upload multiple `files[]` parts. Each part includes the path inside a single top-level folder.
+
+Create a skill (multipart)
+
+```bash
+curl -X POST 'https://api.openai.com/v1/skills' \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
+  -F 'files[]=@./basic_math/SKILL.md;filename=basic_math/SKILL.md;type=text/markdown' \
+  -F 'files[]=@./basic_math/calculate.py;filename=basic_math/calculate.py;type=text/plain'
+```
+
+
+### Option 2: Zip upload
+
+Zip the top-level folder and upload the zip file.
+
+Create a skill (zip)
+
+```bash
+curl -X POST 'https://api.openai.com/v1/skills' \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
+  -F 'files=@./basic_math.zip;type=application/zip'
+```
+
+
+### Wait for an uploaded version
+
+A request for a newly uploaded version can briefly return `404` before it is available. Before attaching it to a container or Live session, retrieve it with `GET /v1/skills/{skill_id}/versions/{version}`. If the retrieval request returns `404` immediately after a successful upload, retry with a short backoff and a timeout. Once retrieval succeeds, use the returned version string in the Skill reference.
+
+## Use skills with hosted shell
+
+To mount skills in a hosted shell environment, attach them via `tools[].environment.skills` when calling the shell tool.
+
+Use skills in hosted shell
+
+```bash
+curl -L 'https://api.openai.com/v1/responses' \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
+  -d '{
+    "model": "gpt-6-astra",
+    "tools": [
+      {
+        "type": "shell",
+        "environment": {
+          "type": "container_auto",
+          "skills": [
+            { "type": "skill_reference", "skill_id": "<skill_id>" },
+            { "type": "skill_reference", "skill_id": "<skill_id>", "version": "2" }
+          ]
+        }
+      }
+    ],
+    "input": "Use the skills to add 144 and 377, then compute triangle area with base 9 height 13."
+  }'
+```
+
+```javascript
+import OpenAI from "openai";
+
+const client = new OpenAI();
+
+const response = await client.responses.create({
+  model: "gpt-6-astra",
+  tools: [
+    {
+      type: "shell",
+      environment: {
+        type: "container_auto",
+        skills: [
+          { type: "skill_reference", skill_id: "<skill_id>" },
+          { type: "skill_reference", skill_id: "<skill_id>", version: "2" },
+        ],
+      },
+    },
+  ],
+  input:
+    "Use the skills to add 144 and 377, then compute triangle area with base 9 height 13.",
+});
+
+console.log(response.output_text);
+```
+
+```python
+response = client.responses.create(
+    model="gpt-6-astra",
+    tools=[
+        {
+            "type": "shell",
+            "environment": {
+                "type": "container_auto",
+                "skills": [
+                    {"type": "skill_reference", "skill_id": "<skill_id>"},
+                    {
+                        "type": "skill_reference",
+                        "skill_id": "<skill_id>",
+                        "version": "2",
+                    },
+                ],
+            },
+        }
+    ],
+    input="Use the skills to add 144 and 377, then compute triangle area with base 9 height 13.",
+)
+
+print(response.output_text)
+```
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/responses"
+)
+
+func main() {
+	client := openai.NewClient()
+	tool := responses.ToolUnionParam{OfShell: &responses.FunctionShellToolParam{
+		Environment: responses.FunctionShellToolEnvironmentUnionParam{OfContainerAuto: &responses.ContainerAutoParam{
+			Skills: []responses.ContainerAutoSkillUnionParam{
+				{OfSkillReference: &responses.SkillReferenceParam{SkillID: "<skill_id>"}},
+				{OfSkillReference: &responses.SkillReferenceParam{SkillID: "<skill_id>", Version: openai.String("2")}},
+			},
+		}},
+	}}
+	response, err := client.Responses.New(context.Background(), responses.ResponseNewParams{
+		Model: "gpt-6-astra",
+		Tools: []responses.ToolUnionParam{tool},
+		Input: responses.ResponseNewParamsInputUnion{OfString: openai.String("Use the skills to add 144 and 377, then compute triangle area with base 9 height 13.")},
+	})
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(response.OutputText())
+}
+```
+
+```java
+import com.openai.client.OpenAIClient;
+import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.core.JsonValue;
+import com.openai.models.responses.ResponseCreateParams;
+import java.util.List;
+import java.util.Map;
+
+String skillId = "<skill_id>";
+
+ResponseCreateParams params =
+    ResponseCreateParams.builder()
+        .model("gpt-6-astra")
+        .input(
+            "Use the skills to add 144 and 377, then compute a triangle area with base 9 and height 13.")
+        .putAdditionalBodyProperty(
+            "tools",
+            JsonValue.from(
+                List.of(
+                    Map.of(
+                        "type",
+                        "shell",
+                        "environment",
+                        Map.of(
+                            "type",
+                            "container_auto",
+                            "skills",
+                            List.of(
+                                Map.of("type", "skill_reference", "skill_id", skillId),
+                                Map.of(
+                                    "type", "skill_reference",
+                                    "skill_id", skillId,
+                                    "version", "2")))))))
+        .build();
+
+client.responses().create(params).output().stream()
+    .flatMap(item -> item.message().stream())
+    .flatMap(message -> message.content().stream())
+    .flatMap(content -> content.outputText().stream())
+    .forEach(text -> System.out.println(text.text()));
+```
+
+```ruby
+require "openai"
+
+client = OpenAI::Client.new
+response = client.responses.create(
+  model: "gpt-6-astra",
+  input: "Use the skills to add 144 and 377, then compute a triangle area with base 9 and height 13.",
+  tools: [
+    {
+      type: :shell,
+      environment: {
+        type: :container_auto,
+        skills: [
+          {
+            type: :skill_reference,
+            skill_id: "<skill_id>"
+          },
+          {
+            type: :skill_reference,
+            skill_id: "<skill_id>",
+            version: "2"
+          }
+        ]
+      }
+    }
+  ]
+)
+
+puts(response.output_text)
+```
+
+
+### Prompting behavior
+
+Once a skill is mounted, the model can decide when to use it. If you want more deterministic behavior, explicitly instruct the model to "use the `<skill name>` skill" when appropriate.
+
+## Use skills with local shell mode
+
+Skills also work with local shell mode, but local shell and hosted shell do not accept the same skill attachment formats.
+
+- Hosted shell supports uploaded `skill_reference` attachments, including curated skills and explicit versions.
+- Local shell does not support `skill_reference` attachments. Instead, provide skill files from local file paths in the runtime you control.
+
+Use the [Shell guide](https://developers.openai.com/api/docs/guides/tools-shell) for local shell execution details.
+
+The JavaScript example requires Node.js and a running Docker daemon. Save the
+[Docker adapter](https://developers.openai.com/api/docs/samples/local-skill-sandbox.mjs) as `support/local-skill-sandbox.mjs` and
+the example as `tools/skills/local-shell.mjs` so its relative import resolves.
+Set `OPENAI_API_KEY`, then install the SDK, pull the adapter's pinned image, and
+run the example from the directory containing `support` and `tools`:
+
+```bash
+npm install openai
+docker pull "$(node --input-type=module -e 'import { sandboxImage } from "./support/local-skill-sandbox.mjs"; console.log(sandboxImage)')"
+node tools/skills/local-shell.mjs
+```
+
+The adapter's helpers have these responsibilities:
+
+| Helper                                  | Application responsibility                                                                                                                                                                                           |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `withLocalSkillSandbox(name, workflow)` | Create an isolated Python environment containing `/workspace/skills/csv-insights/SKILL.md` and `/workspace/reports.csv`, invoke `workflow` with an `AbortSignal`, and remove the environment when the workflow ends. |
+| `executeShellCall(name, call, signal)`  | Execute the requested commands inside that environment and return a `shell_call_output` with the original `call_id`, stdout, stderr, and the exit or timeout outcome.                                                |
+| `readSkillReport(name, signal)`         | Read the generated `/workspace/report.md` from the environment with a bounded file read.                                                                                                                             |
+
+The adapter must enforce execution deadlines and output limits. The example
+keeps generated commands inside the isolated runtime.
+
+Use skills in local shell mode
+
+```bash
+curl -L 'https://api.openai.com/v1/responses' \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
+  -d '{
+    "model": "gpt-6-astra",
+    "tools": [
+      {
+        "type": "shell",
+        "environment": {
+          "type": "local",
+          "skills": [
+            {
+              "name": "csv-insights",
+              "description": "Summarize CSV files and produce a markdown report.",
+              "path": "<path-to-skill-folder>"
+            }
+          ]
+        }
+      }
+    ],
+    "input": "Use the csv-insights skill and run locally to summarize today\'s CSV reports in this repo."
+  }'
+```
+
+```javascript
+import { randomUUID } from "node:crypto";
+import OpenAI from "openai";
+import {
+  withLocalSkillSandbox,
+  executeShellCall,
+  readSkillReport,
+} from "../../support/local-skill-sandbox.mjs";
+
+// Requires Docker. The application-owned helper prepares a disposable Python
+// sandbox with the skill and CSV files; generated commands run only inside it.
+const name = "node-skill-" + randomUUID();
+
+await withLocalSkillSandbox(name, async (signal) => {
+  const client = new OpenAI();
+  /** @type {OpenAI.Responses.ResponseCreateParamsNonStreaming} */
+  const params = {
+    model: "gpt-6-astra",
+    tools: [
+      {
+        type: "shell",
+        environment: {
+          type: "local",
+          skills: [
+            {
+              name: "csv-insights",
+              description: "Summarize CSV files and produce a markdown report.",
+              path: "/workspace/skills/csv-insights",
+            },
+          ],
+        },
+      },
+    ],
+    input:
+      "Use the csv-insights skill and run locally to summarize /workspace/reports.csv. Read the skill instructions, write /workspace/report.md, and include the total in your final answer.",
+  };
+  for (let turn = 0; turn <= 8; turn++) {
+    const response = await client.responses.create(params, { signal });
+    if (response.status !== "completed")
+      throw new Error(`Response ended with status ${response.status}`);
+    const results = [];
+    for (const item of response.output) {
+      if (item.type !== "shell_call") continue;
+      if (turn === 8)
+        throw new Error("Shell workflow exceeded eight tool turns");
+      results.push(await executeShellCall(name, item, signal));
+    }
+    if (results.length === 0) {
+      console.log(response.output_text);
+      console.log("Report:\n" + (await readSkillReport(name, signal)));
+      return;
+    }
+    params.previous_response_id = response.id;
+    params.input = results;
+  }
+  throw new Error("Shell workflow exceeded eight turns");
+});
+```
+
+```python
+response = client.responses.create(
+    model="gpt-6-astra",
+    tools=[
+        {
+            "type": "shell",
+            "environment": {
+                "type": "local",
+                "skills": [
+                    {
+                        "name": "csv-insights",
+                        "description": "Summarize CSV files and produce a markdown report.",
+                        "path": "<path-to-skill-folder>",
+                    }
+                ],
+            },
+        }
+    ],
+    input="Use the csv-insights skill and run locally to summarize today's CSV reports in this repo.",
+)
+
+# Execute returned shell calls locally and submit their shell_call_output to continue.
+print(response.output)
+```
+
+```go
+// The surrounding program prepares an isolated sandbox with the skill files.
+client := openai.NewClient()
+tool := responses.ToolUnionParam{OfShell: &responses.FunctionShellToolParam{
+	Environment: responses.FunctionShellToolEnvironmentUnionParam{
+		OfLocal: &responses.LocalEnvironmentParam{
+			Skills: []responses.LocalSkillParam{{
+				Name:        "csv-insights",
+				Description: "Summarize CSV files and produce a markdown report.",
+				Path:        "/workspace/skills/csv-insights",
+			}},
+		},
+	},
+}}
+params := responses.ResponseNewParams{
+	Model: "gpt-6-astra",
+	Tools: []responses.ToolUnionParam{tool},
+	Input: responses.ResponseNewParamsInputUnion{OfString: openai.String(
+		"Use the csv-insights skill and run locally to summarize /workspace/reports.csv. Read the skill instructions, write /workspace/report.md, and include the total in your final answer.")},
+}
+for turn := 0; turn <= 8; turn++ {
+	response, err := client.Responses.New(ctx, params)
+	if err != nil {
+		return err
+	}
+	if response.Status != responses.ResponseStatusCompleted {
+		return fmt.Errorf("response ended with status %s", response.Status)
+	}
+	results := responses.ResponseInputParam{}
+	for _, item := range response.Output {
+		if item.Type != "shell_call" {
+			continue
+		}
+		if turn == 8 {
+			return fmt.Errorf("shell workflow exceeded eight tool turns")
+		}
+		result, err := executeShellCall(ctx, name, item.AsShellCall())
+		if err != nil {
+			return err
+		}
+		results = append(results, result)
+	}
+	if len(results) == 0 {
+		fmt.Println(response.OutputText())
+		// Read the artifact without executing generated code outside the container.
+		report, err := readReport(ctx, name)
+		if err != nil {
+			return fmt.Errorf("read generated report: %w", err)
+		}
+		fmt.Printf("Report:\n%s\n", report)
+		return nil
+	}
+	params.PreviousResponseID = openai.String(response.ID)
+	params.Input = responses.ResponseNewParamsInputUnion{OfInputItemList: results}
+}
+return fmt.Errorf("shell workflow exceeded eight turns")
+```
+
+```java
+import com.openai.client.OpenAIClient;
+import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.core.JsonValue;
+import com.openai.models.responses.ResponseCreateParams;
+import java.util.List;
+import java.util.Map;
+
+String skillPath = "<path-to-skill-folder>";
+
+ResponseCreateParams params =
+    ResponseCreateParams.builder()
+        .model("gpt-6-astra")
+        .input("Use the csv-insights skill to summarize today's CSV reports.")
+        .putAdditionalBodyProperty(
+            "tools",
+            JsonValue.from(
+                List.of(
+                    Map.of(
+                        "type",
+                        "shell",
+                        "environment",
+                        Map.of(
+                            "type",
+                            "local",
+                            "skills",
+                            List.of(
+                                Map.of(
+                                    "name", "csv-insights",
+                                    "description",
+                                        "Summarize CSV files and produce a Markdown report.",
+                                    "path", skillPath)))))))
+        .build();
+
+client.responses().create(params).output().stream()
+    .flatMap(item -> item.message().stream())
+    .flatMap(message -> message.content().stream())
+    .flatMap(content -> content.outputText().stream())
+    .forEach(text -> System.out.println(text.text()));
+```
+
+```ruby
+require "openai"
+require "open3"
+require "securerandom"
+
+# LocalSkillSandbox is the application-owned Docker executor defined in this
+# complete example. It prepares the skill files, bounds execution, and cleans up.
+def run_local_skill(name)
+  sandbox = LocalSkillSandbox.new(name)
+  begin
+    # Reserve teardown before creation, even if Docker creation is interrupted.
+    sandbox.prepare
+    client = OpenAI::Client.new(max_retries: 0)
+    params = {
+      model: "gpt-6-astra",
+      input: "Use the csv-insights skill and run locally to summarize /workspace/reports.csv. Read the skill instructions, write /workspace/report.md, and include the total in your final answer.",
+      tools: [
+        {
+          type: :shell,
+          environment: {
+            type: :local,
+            skills: [
+              {
+                name: "csv-insights",
+                description: "Summarize CSV files and produce a Markdown report.",
+                path: "/workspace/skills/csv-insights"
+              }
+            ]
+          }
+        }
+      ]
+    }
+    9.times do |turn|
+      response = client.responses.create(**params, request_options: { timeout: sandbox.remaining })
+      raise "Response did not complete" unless response.status == OpenAI::Responses::ResponseStatus::COMPLETED
+
+      calls = response.output.grep(OpenAI::Models::Responses::ResponseFunctionShellToolCall)
+      if calls.empty?
+        puts(response.output_text)
+        puts("Report:\n#{sandbox.report}")
+        return response
+      end
+      raise "Shell workflow exceeded eight tool turns" if turn == 8
+
+      params[:input] = calls.map { |call| sandbox.execute(call) }
+      params[:previous_response_id] = response.id
+    end
+  ensure
+    sandbox.close
+  end
+end
+
+run_local_skill("ruby-skill-#{SecureRandom.hex(8)}")
+```
+
+
+## Agents API
+
+To use skills in the [Agents API](https://developers.openai.com/api/docs/guides/agents-api/overview), put the skill directories in the sandbox and register their parent directories in `environment.capability_directories` when creating the session. These are called **capability directories**. The harness uses them to discover skills; this setup doesn't use the hosted shell's `skill_reference` attachment format.
+
+For example, place a contract-review skill and a pull-request-review skill in the sandbox:
+
+```text
+/workspace/capabilities/
+├── legal/
+│   └── contract-redline/
+│       ├── SKILL.md
+│       └── references/
+│           └── fallback-clauses.md
+└── engineering/
+    └── review-pr/
+        ├── SKILL.md
+        └── references/
+            └── review-guidelines.md
+```
+
+Use this environment configuration in the session-creation request:
+
+```json
+{
+  "environment": {
+    "type": "self_hosted",
+    "workspace_directory": "/workspace",
+    "capability_directories": [
+      "/workspace/capabilities/legal",
+      "/workspace/capabilities/engineering"
+    ]
+  }
+}
+```
+
+Capability directories have these requirements:
+
+- Paths must point to directories inside the sandbox.
+- Paths must be absolute and unique, and cannot contain `.` or `..` path segments.
+- A session can register up to 32 capability directories.
+- Directories must already exist in the environment.
+
+Once the sandbox becomes available, the harness searches these directories for `SKILL.md` files and adds each discovered skill's name and description to context. The model can select relevant skills and read their full instructions and supporting files.
+
+See [Agent configuration](https://developers.openai.com/api/docs/guides/agents-api/configuration) for session setup and [Connect a sandbox](https://developers.openai.com/api/docs/guides/agents-api/environments/self-hosted) for the execution environment. Review the skills and their supporting files before making them available to the agent, and follow the [sandbox security guidance](https://developers.openai.com/api/docs/guides/agents-api/environments/security).
+
+## Skills in the user prompt
+
+For Responses API shell tools, the platform adds each available skill's `name`, `description`, and `path` to user prompt context so the model knows the skill exists.
+
+The model decides whether to invoke a skill based on this metadata. If the model invokes a skill, it uses the `path` to read the full Markdown instructions from `SKILL.md`.
+
+Skill instructions are user prompt input (not system prompt input), so they're handled with the same priority as other user-provided instructions. For explicit control, you can still instruct the model to "use the `<skill name>` skill."
+
+## Limits and validation
+
+- `SKILL.md` file matching is case-insensitive.
+- Exactly one `skill.md`/`SKILL.md` file is allowed in a skill bundle.
+- Skill front matter validation follows the [agent skills specification](https://agentskills.io/specification#name-field).
+- Maximum zip upload size is `50 MB`.
+- Maximum file count per skill version is `500`.
+- Maximum uncompressed file size is `25 MB`.
+
+## Safety with network access
+
+Inspect any Skill used with the Responses API. Skills introduce security risks
+  such as prompt injection-driven data exfiltration. Carefully review the [Risks
+  and safety](#risks-and-safety) section below before using this tool.
+
+## Versioning and management
+
+### Version pointers
+
+- `default_version` is used when a version isn't provided.
+- `latest_version` tracks the newest upload.
+- `skill_reference.version` accepts a version string, such as `"2"` or `"latest"`.
+- `default_version` also requires a string when you update it.
+
+### Create a new version
+
+Create a new skill version
+
+```bash
+curl -X POST 'https://api.openai.com/v1/skills/<skill_id>/versions' \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
+  -F 'files=@./geometry.zip;type=application/zip'
+```
+
+
+### Set default version
+
+Set a skill's default version
+
+```bash
+curl -X POST 'https://api.openai.com/v1/skills/<skill_id>' \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
+  -d '{"default_version": "2"}'
+```
+
+
+### Delete rules
+
+- You can't delete the default version; set another default first.
+- Deleting the last remaining version deletes the skill.
+- Deleting a skill cascades to remove all versions.
+
+## Curated skills
+
+OpenAI maintains a set of first-party skills that can be referenced by id (for example, `openai-spreadsheets`).
+
+Reference a curated skill
+
+```json
+{ "type": "skill_reference", "skill_id": "openai-spreadsheets", "version": "latest" }
+```
+
+
+## Inline skills
+
+If you don't want to create a hosted skill, you can inline a zip bundle (base64) in the environment's `skills` array.
+
+Inline a skill bundle
+
+```bash
+INLINE_ZIP=$(base64 -i ./basic_math.zip)
+
+curl -L 'https://api.openai.com/v1/containers' \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
+  -d '{
+    "name": "inline-skill-container",
+    "skills": [
+      {
+        "type": "inline",
+        "name": "basic_math",
+        "description": "Add or multiply numbers.",
+        "source": {
+          "type": "base64",
+          "media_type": "application/zip",
+          "data": "'"$INLINE_ZIP"'"
+        }
+      }
+    ]
+  }'
+```
+
+
+## Risks and safety
+
+It's important to inspect any Skill used with the Responses API. Skills introduce security risks such as prompt injection-driven data exfiltration.
+
+For Skills used in conjunction with network access, carefully review the [Risks and safety section for networking](https://developers.openai.com/api/docs/guides/tools-shell#risks-and-safety).
+
+#### Treat Skills as privileged code and instructions
+
+Skill content can influence planning, tool usage, and command execution. Any Skill should be reviewed as potentially untrusted input until validated by the developer.
+
+### Don't expose an open Skills repository to end-users
+
+Avoid product designs where consumer end-users can freely browse, select, or attach arbitrary Skills from an open catalog. This materially increases risk from:
+
+- Prompt-injection and policy bypass via malicious SKILL.md instructions.
+- Data exfiltration or destructive actions triggered by unvetted automation.
+
+#### Integrate Skills at the developer level
+
+Skills should be inspected and integrated by the developer, then exposed to end-users only through bounded product experiences. In practice:
+
+- Map Skills to specific product workflows/use cases.
+- Prevent end-user control over arbitrary Skill selection.
+- Gate write or high-impact actions behind explicit approval and policy checks.
+
+#### Require approval for sensitive actions
+
+For workflows that can perform write or high-impact actions, require explicit approval before execution.
+
+#### Validate data residency and retention requirements
+
+The Responses API supports Skills in two form factors: local execution and hosted container-based execution. Hosted skills follow the same container lifecycle as hosted shell: mounted skills and container files remain available while the container is active and are discarded when the container expires or is deleted. If you want execution to stay entirely on infrastructure you manage, use local shell mode. For Agents API sandboxes, see [Sandbox lifecycle](https://developers.openai.com/api/docs/guides/agents-api/environments/lifecycle). Read more about our [data controls](https://developers.openai.com/api/docs/guides/your-data).

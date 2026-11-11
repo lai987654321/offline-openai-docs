@@ -1,0 +1,2114 @@
+# Agentic Commerce — full documentation
+
+> Single-file Markdown export of Agentic Commerce guides and specs.
+
+Curated index: https://developers.openai.com/commerce/llms.txt
+
+# Agentic commerce in production
+
+## Testing and launch certification
+
+Before going live, complete and document the following tests in a sandbox environment.
+
+Each item should be demonstrated end-to-end with request/response logs.
+
+### Session creation and address handling
+
+- **Create a checkout session with and without a shipping address.**
+  - Verify that shipping options and tax totals are returned once a valid address is provided.
+  - Confirm `API-Version` header is present and matches a supported version.
+
+### Shipping option updates
+
+- **Update the selected shipping option.**
+  - Ensure order totals are recomputed correctly when the option changes.
+
+### Payment tokenization
+
+- **Create a delegated payment token.**
+  - Send a `POST /agentic_commerce/delegate_payment` request with a valid `payment_method` object, `allowance`, `billing_address`, `risk_signals`, and `metadata`.
+  - Include all required headers.
+  - Verify canonical JSON serialization and correct detached signature generation.
+
+### Order completion
+
+- **Complete the order with a tokenized payment.**
+  - Confirm the response contains the final order object in the `completed` state.
+  - Validate returned fields and ensure `HTTP 201 Created` status.
+
+### Order updates
+
+- **Emit order events.**
+  - Verify that both `order_created` and subsequent `order_updated` webhooks are sent with a valid HMAC signature.
+
+### Error scenarios
+
+- **Demonstrate recoverable error handling.**
+  - Trigger and log each error condition with appropriate HTTP status:
+    - `missing` (e.g., required field omitted → `invalid_request / 400`)
+    - `out_of_stock` (simulate inventory failure)
+    - `payment_declined` (simulate issuer decline)
+
+### Idempotency
+
+- **Verify idempotency safety.**
+  - Repeat create and complete calls using the same Idempotency-Key to confirm:
+    - Safe duplicate requests return the same result.
+    - Parameter mismatches return `idempotency_conflict with HTTP 409`.
+
+### Documentation and links
+
+- **Check legal and UX links.**
+  - Ensure Terms of Service and Privacy Policy links are present and functional.
+
+### IP egress ranges
+
+- **Allowlist OpenAI’s IP addresses**
+  - OpenAI will call your action from one of the [published IP ranges](https://developers.openai.com/api/docs/guides/ip-addresses).
+
+## Security and compliance
+
+Security is a top priority for the Agentic Commerce Protocol and Instant Checkout. Our [security practices](https://www.openai.com/security) and [trust and compliance portal](https://trust.openai.com/) provide our most comprehensive and up-to-date documentation. For reference, here is our [Privacy Policy](https://openai.com/privacy/) and [Terms of Use](https://openai.com/api/policies/terms/).
+
+**TLS and HTTPS**
+
+All traffic to you must use TLS 1.2 or later on port 443 with a valid public certificate.
+
+**PCI Scope**
+
+The Product Feed Spec and Agentic Checkout Spec are deliberately kept out of PCI scope and do not transmit cardholder data. Using your PSP’s implementation of the Delegated Payment Spec may avoid any change in your PCI scope. However, using either your PSP’s forwarding APIs or integrating directly with OpenAI's Delegated Payment endpoints involves handling cardholder data (CHD) and will likely be in PCI scope. We intend to migrate entirely to using network tokens as they become supported while ensuring backwards compatibility for ineligible cards.
+
+Directly integrating with the Delegated Payment Spec involves directly handling cardholder data (CHD) and may affect your PCI scope. Check with your PSP and consult with your Qualified Security Assessor (QSA) or other PCI compliance advisor to determine the impact on your specific PCI DSS obligations. OpenAI may require your attestation of compliance (AOC) before enabling production access.
+
+## FAQs
+
+**Who is the merchant of record in an agentic checkout flow?**
+
+The merchant actually selling goods and taking payment directly from the customer is. OpenAI and other trusted payment service providers are not the merchant of record. Customers will see the Merchant’s name on their credit card statement, as if they bought directly from the merchant website.
+
+**Who manages chargebacks and refunds?**
+
+The merchant does. Your platform is responsible for handling refunds and chargebacks, as you accepted the payment directly from the customer as the merchant of record.
+
+Use the `ORDER_UPDATE` webhook to notify ChatGPT (or any integrated partner) when a refund or chargeback status changes so order state stays synchronized.
+
+**Do we need to support multiple shipments?**
+
+Today, the protocol models a single shipping address and one selected shipping option per checkout session. In the future, the protocol may support multiple shipments.
+
+If your system supports split shipments, consolidate them into a single buyer-visible selection and return aggregate totals for shipping and tax.
+
+---
+
+# Best practices
+
+Onboarding product feeds in ChatGPT is currently available to approved
+  partners. To apply for access, fill out this form 
+  [here](https://chatgpt.com/merchants)
+
+## Content quality
+
+### Write factual descriptions
+
+- Use concise, factual copy that helps users understand products.
+- Plain text and bullet-style text are both acceptable.
+
+### Use optional fields intentionally
+
+- Optional fields like `description.html`, `description.markdown`, `categories.taxonomy`, and `seller.links` can improve answer quality but are not required for ingestion.
+- If an optional field requires brittle transforms, omit it until data quality is stable.
+
+### Keep URL values valid and encoded
+
+- Ensure `url`, `media.url`, and seller link URLs are valid and encoded.
+- Encode spaces and unsafe characters (for example, use `%20` for spaces).
+
+
+
+
+
+## Seller and policy
+
+### Keep attribution and policy links consistent
+
+- Set `seller.name` to the seller users should see in listing context.
+- Use durable, public URLs in `seller.links`.
+- Reuse supported `Link.type` values consistently across your catalog.
+
+
+
+
+
+## Variants
+
+### Model variants at row level
+
+- Use a stable product `id` for the parent product and a unique variant `id` for each purchasable option.
+- Keep `title`, `url`, `description`, `media`, `availability`, and `price` variant-specific when those values differ by variant.
+- Populate `variant_options` with the user-facing option dimensions, such as color or size.
+- Use product-level `media` only when the assets apply across every variant.
+
+
+
+
+
+## Attribution
+
+### Track post-launch performance explicitly
+
+- Add feed attribution parameters to `url` (for example `utm_medium=feed`) when you need feed-specific click tracking.
+- Keep your internal tracking parameters consistent across snapshots.
+
+---
+
+# Get Started
+
+Onboarding product feeds in ChatGPT is currently available to approved
+  partners. To apply for access, fill out this form 
+  [here](https://chatgpt.com/merchants)
+
+## Overview
+
+Start your ACP integration by sharing a structured product feed with OpenAI. Product feeds give ChatGPT the catalog data it needs to index your products, understand core attributes, and present accurate product information in shopping experiences.
+
+Start with product feeds when you want to:
+
+- Make your catalog understandable to ChatGPT.
+- Share up-to-date product data, including titles, descriptions, images, price, and availability.
+- Establish a clear integration path based on a documented schema and delivery model.
+
+## Integration path
+
+Use this sequence to stand up your integration with ACP:
+
+1. **Review** the [file upload guide](https://developers.openai.com/commerce/specs/file-upload/overview) and [product file schema](https://developers.openai.com/commerce/specs/file-upload/products).
+2. **Validate** the required fields for every record.
+3. **Upload** your catalog over SFTP.
+4. **Keep** the feed current by overwriting the same file or shard set with your latest snapshot. We recommend uploading a full snapshot at least once a day.
+
+To submit promotions, use the [Promotions API](https://developers.openai.com/commerce/specs/api/promotions).
+
+## Prohibited products policy
+
+To keep ChatGPT a safe place for everyone, we only allow products and services that are legal, safe, and appropriate for a general audience. Prohibited products include, but are not limited to, those that involve adult content, age-restricted products (for example, alcohol, nicotine, gambling), harmful or dangerous materials, weapons, prescription-only medications, unlicensed financial products, legally restricted goods, illegal activities, or deceptive practices.
+
+Merchants are responsible for ensuring their products and content do not violate these restrictions or any applicable law. OpenAI may take corrective actions such as removing a product or banning a seller from being surfaced in ChatGPT if these policies are violated.
+
+## Best practices
+
+Review integration [best practices](https://developers.openai.com/commerce/guides/best-practices) for guidance.
+
+---
+
+# Key concepts
+
+Supporting Instant Checkout in ChatGPT requires a merchant to implement three flows.
+
+## Sharing a product feed
+
+The [Product feeds docs](https://developers.openai.com/commerce/specs) define how merchants share structured product data with OpenAI so ChatGPT can accurately surface their products in search and shopping experiences.
+
+- Merchants provide a secure, regularly refreshed feed (CSV or JSON) containing key details such as identifiers, descriptions, pricing, inventory, media, and fulfillment options.
+- Required fields ensure correct display of price and availability, while recommended attributes—like rich media, reviews, and performance signals—improve ranking, relevance, and user trust.
+- Integration involves sending an initial sample feed for validation, and daily snapshots.
+
+## Handling orders and checkout
+
+The [Agentic Checkout Spec](https://developers.openai.com/commerce/specs/checkout) enables ChatGPT to act as the customer’s AI agent and renders a checkout experience embedded in ChatGPT’s UI.
+
+- ChatGPT collects buyer, fulfillment, and payment information from the user.
+- ChatGPT calls the merchant’s Agentic Commerce Protocol endpoints to create or update a checkout session, and securely share information.
+- The merchant performs validation, determines fulfillment options, calculates and charges sales tax, , analyzes payment and risk signals on their own stack, and charges the payment method with their existing payment processor. The merchant accepts or declines the order, and returns this state to ChatGPT.
+- ChatGPT reflects states and shows the order confirmation (or decline) message to the user.
+
+The checkout session is rendered in the OpenAI UI, but the actual checkout
+  state and payment processing occurs on the merchant’s systems. OpenAI sends
+  the merchant information and the merchant determines whether to accept or
+  decline the order, charge the payment method, and confirm the order – all on
+  their own systems.
+
+## Handling payments
+
+The [Delegated Payment Spec](https://developers.openai.com/commerce/specs/payment) allows OpenAI to securely share payment details with the merchant or its designated payment service provider (PSP). The merchant and its PSP then handle the transaction and process the related payment in the same manner as any other order and payment they collect.
+
+- OpenAI prepares a one-time delegated payment request and sets a maximum chargeable amount and expiry based on what the user has selected to buy in ChatGPT’s UI.
+- This payload is passed to the merchant’s trusted PSP who will handle the transaction.
+- The PSP responds with a payment token that OpenAI passes on to the merchant to complete the payment.
+- [Stripe’s Shared Payment Token](https://docs.stripe.com/agentic-commerce) is the first Delegated Payment Spec-compatible implementation, with more PSPs coming soon.
+- Eligible cards will be upgraded using network tokenization.
+- If you’re a PSP or a PCI DSS level 1 merchant with your own vault, [learn how to build a direct integration with OpenAI](https://developers.openai.com/commerce/specs/payment).
+
+OpenAI is not the merchant of record in the Agentic Commerce Protocol.
+  Merchants are expected to bring their own PSP and handle payments just as they
+  do for accepting any other digital payment. The OpenAI Delegated Payment Spec
+  ensures that restrictions are placed on how these payment credentials are used
+  to secure user transactions.
+
+## End-to-end flow diagram
+
+This diagram illustrates the end-to-end data flow of the Agentic Commerce Protocol.
+
+![Agentic Commerce Protocol flow diagram](https://developers.openai.com/images/commerce/commerce-acp-flow.png)
+
+---
+
+# Agentic Checkout Spec
+
+## Overview
+
+Enable merchants to run end-to-end checkout flows inside ChatGPT while keeping orders, payments, and compliance on their existing commerce stack.
+
+**How it works**
+
+1. Create session (REST). ChatGPT calls your `POST /checkout_sessions` to start a session with cart contents and buyer context; your response must include a rich, authoritative cart state.
+2. Update session (REST). As the user changes items, shipping, or discounts, ChatGPT calls `POST /checkout_sessions/{checkout_session_id}`; each response returns the full cart state for display and validation.
+3. Order events (webhooks). Your system publishes order lifecycle events (e.g., `order.created`, `order.updated`) to the provided webhook so ChatGPT stays in sync with fulfillment-grade truth.
+4. Complete checkout (REST). ChatGPT finalizes via `POST /checkout_sessions/{checkout_session_id}/complete`; you confirm order creation and return the final cart and order identifiers.
+5. Optionally, cancel checkouts using POST `/checkout_sessions/{checkout_session_id}/cancel` and get checkout information with `GET /checkout_sessions/{checkout_session_id}`.
+6. Payments on your rails. You process payment with your existing PSP; if using Delegated Payments, accept the token and apply your normal authorization/capture flow.
+
+**Key points**
+
+- **Required endpoints.** Implement create, update, and complete checkout session REST endpoints; all responses must return a rich cart state (items, pricing, taxes/fees, shipping, discounts, totals, status).
+- **Authoritative webhooks.** Emit order events to the provided webhook to keep state consistent across retries and edge cases.
+- **Keep payments where they are.** Use your current PSP and settlement processes; integrate Delegated Payments only if applicable.
+- **Security and robustness.** Authenticate every request, verify signatures, enforce idempotency, validate inputs, and support safe retries.
+- **Certify integration.** Pass conformance checks (schema, error codes, rate limits, webhook delivery) to ensure reliable in-ChatGPT checkout.
+
+## Checkout session
+
+For users to place an order through ChatGPT, you must create, update and complete a Checkout session. This Checkout session holds information about items to be purchased, fulfillment information, and payment information.
+
+As the user progresses through the checkout flow the Checkout session will be updated and move between various states.
+
+The response to update calls, should return all checkout options, messages, and errors to be displayed to the user. Once the customer clicks “Buy”, the checkout session is completed with a selected payment method.
+
+![State diagram showing order states](https://developers.openai.com/images/commerce/commerce-order-states.png)
+
+## REST endpoints
+
+Merchants must implement the following five endpoints to place orders on behalf of ChatGPT users.
+
+In the future, the Agentic Checkout Spec will support MCP servers.
+
+### Common features of all endpoints
+
+All endpoints must use HTTPS and return JSON.
+
+#### Request headers
+
+All endpoints will be called with the following headers set:
+
+| Field           | Description                                               | Example Value                                   |
+| :-------------- | :-------------------------------------------------------- | :---------------------------------------------- |
+| Authorization   | API Key used to make requests                             | `Bearer api_key_123`                            |
+| Accept-Language | The preferred locale for content like messages and errors | `en-US`                                         |
+| User-Agent      | Information about the client making this request          | `ChatGPT/2.0 (Mac OS X 15.0.1; arm64; build 0)` |
+| Idempotency-Key | Key used to ensure requests are idempotent                | `idempotency_key_123`                           |
+| Request-Id      | Unique key for each request for tracing purposes          | `request_id_123`                                |
+| Content-Type    | Type of request content                                   | `application/json`                              |
+| Signature       | Base64 encoded signature of the request body              | `eyJtZX...`                                     |
+| Timestamp       | Formatted as an RFC 3339 string.                          | 2025-09-25T10:30:00Z                            |
+| API-Version     | API version                                               | 2025-09-12                                      |
+
+#### Response headers
+
+| Field           | Description                           | Example Value         |
+| :-------------- | :------------------------------------ | :-------------------- |
+| Idempotency-Key | Idempotency key passed in the request | `idempotency_key_123` |
+| Request-Id      | Request ID passed in the request      | `request_id_123`      |
+
+### POST /checkout_sessions
+
+Call direction: OpenAI -> Merchant
+
+This is the initial call to create a checkout session. The call will contain information about the items the customer wishes to purchase and should return line item information, along with any messages or errors to be displayed to the customer. It should always return a checkout session id. All responses should be returned with a 201 status.
+
+#### Request
+
+| Field               | Type       | Required | Description                                                 | Validation                 |
+| :------------------ | :--------- | :------- | :---------------------------------------------------------- | :------------------------- |
+| buyer               | Buyer      | No       | Optional information about the buyer.                       | None                       |
+| items               | List[Item] | Yes      | The initial list of items to initiate the checkout session. | Should be a non empty list |
+| fulfillment_address | Address    | No       | Optional fulfillment address if present.                    | None                       |
+
+#### Response
+
+| Field                 | Type                    | Required | Description                                                                                                                     | Validation                                        |
+| :-------------------- | :---------------------- | :------- | :------------------------------------------------------------------------------------------------------------------------------ | :------------------------------------------------ |
+| id                    | String                  | Yes      | Unique id that identifies the checkout session. This id will be used to update the checkout session in subsequent calls.        | None                                              |
+| buyer                 | Buyer                   | No       | Buyer information, if provided                                                                                                  | None                                              |
+| payment_provider      | PaymentProvider         | Yes      | Payment provider that will be used to complete this transaction.                                                                | None                                              |
+| status                | String enum             | Yes      | Current status of the checkout session. Possible values are: `not_ready_for_payment` `ready_for_payment` `completed` `canceled` | None                                              |
+| currency              | String                  | Yes      | Currency code as per the ISO 4217 standard                                                                                      | Should follow the ISO 4217 standard in lower case |
+| line_items            | List[LineItem]          | Yes      | List of items and computed costs.                                                                                               | None                                              |
+| fulfillment_address   | Address                 | No       | Address to ship items to.                                                                                                       | None                                              |
+| fulfillment_options   | List[FulfillmentOption] | Yes      | All available fulfillment options and associated costs.                                                                         | None                                              |
+| fulfillment_option_id | String                  | No       | Id of the selected fulfillment option.                                                                                          | None                                              |
+| totals                | List[Total]             | Yes      | List of totals.                                                                                                                 | None                                              |
+| messages              | List[Message]           | Yes      | List of informational and error messages to be displayed to the customer.                                                       | None                                              |
+| links                 | List[Link]              | Yes      | List of links (e.g. ToS/privacy policy/etc.) to be displayed to the customer.                                                   | None                                              |
+
+#### Examples
+
+1. Creating a checkout session with a single item and quantity. No fulfillment address is provided, so the checkout cannot be completed.
+
+```json
+POST Request to /checkout_sessions
+
+{
+   "items": [
+       {
+           "id": "item_123",
+           "quantity": 1
+       }
+   ]
+}
+```
+
+```json
+Response
+
+{
+   "id": "checkout_session_123",
+   "payment_provider": {
+       "provider": "stripe",
+       "supported_payment_methods": ["card"]
+   },
+   "status": "in_progress",
+   "currency": "usd",
+   "line_items": [
+       {
+           "id": "line_item_123",
+           "item": {
+               "id": "item_123",
+               "quantity": 1
+           },
+           "base_amount": 300,
+           "discount": 0,
+           "subtotal": 300,
+           "tax": 30,
+           "total": 330
+       }
+   ],
+   "totals": [
+       {
+           "type": "items_base_amount",
+           "display_text": "Item(s) total",
+           "amount": 300
+       },
+       {
+           "type": "subtotal",
+           "display_text": "Subtotal",
+           "amount": 300
+       },
+       {
+           "type": "tax",
+           "display_text": "Tax",
+           "amount": "0.30"
+       },
+       {
+           "type": "total",
+           "display_text": "Total",
+           "amount": 330
+       }
+   ],
+   "fulfillment_options": [],
+   "messages": [
+       {
+           "type": "error",
+           "code": "out_of_stock",
+           "path": "$.line_items[0]",
+           "content_type": "plain",
+           "content": "This item is not available for sale.",
+       }
+   ],
+   "links": [
+       {
+           "type": "terms_of_use",
+           "url": "https://www.testshop.com/legal/terms-of-use"
+       }
+   ]
+}
+```
+
+2. Creating a checkout session with a single item and quantity, and a provided fulfillment address. Since a fulfillment address is provided, taxes are returned as well. Fulfillment options are also available, and the cheapest one is selected by default. Any messages to show to the customer based on their fulfillment address (e.g. CA 65 warning) are also returned.
+
+```json
+POST Request to /checkout_sessions
+
+{
+   "items": [
+       {
+           "id": "item_456",
+           "quantity": 1
+       }
+   ],
+   "fulfillment_address": {
+       "name": "test",
+       "line_one": "1234 Chat Road",
+       "line_two": "Apt 101",
+       "city": "San Francisco",
+       "state": "CA",
+       "country": "US",
+       "postal_code": "94131"
+   }
+}
+
+```
+
+```json
+Response
+
+{
+   "id": "checkout_session_123",
+   "payment_provider": {
+       "provider": "stripe",
+       "supported_payment_methods": ["card"]
+   },
+   "status": "ready_for_payment",
+   "currency": "usd",
+   "line_items": [
+       {
+           "id": "line_item_456",
+           "item": {
+               "id": "item_456",
+               "quantity": 1
+           },
+           "base_amount": 300,
+           "discount": 0,
+           "subtotal": 0,
+           "tax": 30,
+           "total": 330
+       }
+   ],
+   "fulfillment_address": {
+       "name": "test",
+       "line_one": "1234 Chat Road",
+       "line_two": "Apt 101",
+       "city": "San Francisco",
+       "state": "CA",
+       "country": "US",
+       "postal_code": "94131"
+   },
+   "fulfillment_option_id": "fulfillment_option_123",
+   "totals": [
+       {
+           "type": "items_base_amount",
+           "display_text": "Item(s) total",
+           "amount": 300
+       },
+       {
+           "type": "subtotal",
+           "display_text": "Subtotal",
+           "amount": 300
+       },
+       {
+           "type": "tax",
+           "display_text": "Tax",
+           "amount": 30
+       },
+       {
+           "type": "fulfillment",
+           "display_text": "Fulfillment",
+           "amount": 100
+       },
+       {
+           "type": "total",
+           "display_text": "Total",
+           "amount": 430
+       }
+   ],
+   "fulfillment_options": [
+       {
+           "type": "shipping",
+           "id": "fulfillment_option_123",
+           "title": "Standard",
+           "subtitle": "Arrives in 4-5 days",
+           "carrier": "USPS",
+           "earliest_delivery_time": "2025-10-12T07:20:50.52Z",
+           "latest_delivery_time": "2025-10-13T07:20:50.52Z",
+           "subtotal": 100,
+           "tax": 0,
+           "total": 100
+       },
+       {
+           "type": "shipping",
+           "id": "fulfillment_option_456",
+           "title": "Express",
+           "subtitle": "Arrives in 1-2 days",
+           "carrier": "USPS",
+           "earliest_delivery_time": "2025-10-09T07:20:50.52Z",
+           "latest_delivery_time": "2025-10-10T07:20:50.52Z",
+           "subtotal": 500,
+           "tax": 0,
+           "total": 500
+       }
+   ],
+   "messages": [],
+   "links": [
+       {
+           "type": "terms_of_use",
+           "url": "https://www.testshop.com/legal/terms-of-use"
+       }
+   ]
+}
+```
+
+### POST `/checkout_sessions/{checkout_session_id}`
+
+Call direction: OpenAI -> Merchant
+
+This endpoint will be called on checkout session updates, such as a change in fulfillment address or fulfillment option. The endpoint should return updated costs, new options (e.g. new fulfillment options based on update in fulfillment address), and any new errors.
+
+#### Request
+
+| Field                 | Type       | Required | Description                                                           | Validation |
+| :-------------------- | :--------- | :------- | :-------------------------------------------------------------------- | :--------- |
+| buyer                 | Buyer      | No       | Optional information about the buyer.                                 | None       |
+| items                 | List[Item] | No       | Optional list of updated items to be purchased.                       | None       |
+| fulfillment_address   | Address    | No       | Newly added or updated fulfillment address specified by the customer. | None       |
+| fulfillment_option_id | String     | No       | Id of the fulfillment option specified by the customer.               | None       |
+
+#### Response
+
+| Field                 | Type                    | Required | Description                                                                                                                     | Validation                                        |
+| :-------------------- | :---------------------- | :------- | :------------------------------------------------------------------------------------------------------------------------------ | :------------------------------------------------ |
+| id                    | String                  | Yes      | Unique id that identifies the checkout session. This id will be used to update the checkout session in subsequent calls.        | None                                              |
+| buyer                 | Buyer                   | No       | Buyer information, if provided                                                                                                  | None                                              |
+| status                | String enum             | Yes      | Current status of the checkout session. Possible values are: `not_ready_for_payment` `ready_for_payment` `completed` `canceled` | None                                              |
+| currency              | String                  | Yes      | Currency code as per the ISO 4217 standard                                                                                      | Should follow the ISO 4217 standard in lower case |
+| line_items            | List[LineItem]          | Yes      | List of items and computed costs.                                                                                               | None                                              |
+| fulfillment_address   | Address                 | No       | Address to ship items to.                                                                                                       | None                                              |
+| fulfillment_options   | List[FulfillmentOption] | Yes      | All available fulfillment options and associated costs.                                                                         | None                                              |
+| fulfillment_option_id | String                  | No       | Id of the selected fulfillment option.                                                                                          | None                                              |
+| totals                | List[Total]             | Yes      | List of totals.                                                                                                                 | None                                              |
+| messages              | List[Message]           | Yes      | List of informational and error messages to be displayed to the customer.                                                       | None                                              |
+| links                 | List[Link]              | Yes      | List of links (e.g. ToS/privacy policy/etc.) to be displayed to the customer.                                                   | None                                              |
+
+#### Example
+
+Updating the fulfillment option updates the checkout session totals.
+
+```json
+POST Request to /checkout_sessions/checkout_session_123
+
+{
+   "fulfillment_option_id": "fulfillment_option_456"
+}
+```
+
+```json
+Response
+
+{
+   "id": "checkout_session_123",
+   "status": "ready_for_payment",
+   "currency": "usd",
+   "line_items": [
+       {
+           "id": "line_item_456",
+           "item": {
+               "id": "item_456",
+               "quantity": 1
+           },
+           "base_amount": 300,
+           "discount": 0,
+           "subtotal": 0,
+           "tax": 30,
+           "total": 330
+       }
+   ],
+   "fulfillment_address": {
+       "name": "test",
+       "line_one": "1234 Chat Road",
+       "line_two": "Apt 101",
+       "city": "San Francisco",
+       "state": "CA",
+       "country": "US",
+       "postal_code": "94131"
+   },
+   "fulfillment_option_id": "fulfillment_option_456",
+   "totals": [
+       {
+           "type": "items_base_amount",
+           "display_text": "Item(s) total",
+           "amount": 300
+       },
+       {
+           "type": "subtotal",
+           "display_text": "Subtotal",
+           "amount": 300
+       },
+       {
+           "type": "tax",
+           "display_text": "Tax",
+           "amount": 30
+       },
+       {
+           "type": "fulfillment",
+           "display_text": "Fulfillment",
+           "amount": 500
+       },
+       {
+           "type": "total",
+           "display_text": "Total",
+           "amount": 830
+       }
+   ],
+   "fulfillment_options": [
+       {
+           "type": "shipping",
+           "id": "fulfillment_option_123",
+           "title": "Standard",
+           "subtitle": "Arrives in 4-5 days",
+           "carrier": "USPS",
+           "earliest_delivery_time": "2025-10-12T07:20:50.52Z",
+           "latest_delivery_time": "2025-10-13T07:20:50.52Z",
+           "subtotal": 100,
+           "tax": 0,
+           "total": 100
+       },
+       {
+           "type": "shipping",
+           "id": "fulfillment_option_456",
+           "title": "Express",
+           "subtitle": "Arrives in 1-2 days",
+           "carrier": "USPS",
+           "earliest_delivery_time": "2025-10-09T07:20:50.52Z",
+           "latest_delivery_time": "2025-10-10T07:20:50.52Z",
+           "subtotal": 500,
+           "tax": 0,
+           "total": 500
+       }
+   ],
+   "messages": [],
+   "links": [
+       {
+           "type": "terms_of_use",
+           "url": "https://www.testshop.com/legal/terms-of-use"
+       }
+   ]
+}
+```
+
+### POST `/checkout_sessions/{checkout_session_id}/complete`
+
+Call direction: OpenAI -> Merchant
+
+The endpoint will be called with the payment method to complete the purchase. It is expected that the checkout session will be completed and an order will be created after this call. Any errors that prevent this from happening should be returned in the response.
+
+#### Request
+
+| Field        | Type        | Required | Description                                         | Validation |
+| :----------- | :---------- | :------- | :-------------------------------------------------- | :--------- |
+| buyer        | Buyer       | No       | Optional information about the buyer.               | None       |
+| payment_data | PaymentData | Yes      | Payment data used to complete the checkout session. | None       |
+
+#### Response
+
+| Field                 | Type                    | Required | Description                                                                                                                     | Validation                                        |
+| :-------------------- | :---------------------- | :------- | :------------------------------------------------------------------------------------------------------------------------------ | :------------------------------------------------ |
+| id                    | String                  | Yes      | Unique id that identifies the checkout session. This id will be used to update the checkout session in subsequent calls.        | None                                              |
+| buyer                 | Buyer                   | Yes      | Buyer information                                                                                                               | None                                              |
+| status                | String enum             | Yes      | Current status of the checkout session. Possible values are: `not_ready_for_payment` `ready_for_payment` `completed` `canceled` | None                                              |
+| currency              | String                  | Yes      | Currency code as per the ISO 4217 standard                                                                                      | Should follow the ISO 4217 standard in lower case |
+| line_items            | List[LineItem]          | Yes      | List of items and computed costs.                                                                                               | None                                              |
+| fulfillment_address   | Address                 | No       | Address to ship items to.                                                                                                       | None                                              |
+| fulfillment_options   | List[FulfillmentOption] | Yes      | All available fulfillment options and associated costs.                                                                         | None                                              |
+| fulfillment_option_id | String                  | No       | Id of the selected fulfillment option.                                                                                          | None                                              |
+| totals                | List[Total]             | Yes      | List of totals.                                                                                                                 | None                                              |
+| order                 | Order                   | No       | Order that is created after the checkout session completes.                                                                     | None                                              |
+| messages              | List[Message]           | Yes      | List of informational and error messages to be displayed to the customer.                                                       | None                                              |
+| links                 | List[Link]              | Yes      | List of links (e.g. ToS/privacy policy/etc.) to be displayed to the customer.                                                   | None                                              |
+
+#### Example
+
+Completing the checkout session with an encrypted payload representing the payment method.
+
+```json
+POST Request to /checkout_sessions/checkout_session_123/complete
+
+{
+   "buyer": {
+       "name": "John Smith",
+       "email": "johnsmith@mail.com",
+       "phone_number": "+15552003434"
+   },
+   "payment_data": {
+       "token": "spt_123",
+       "provider": "stripe",
+       "billing_address": {
+           "name": "test",
+           "line_one": "1234 Chat Road",
+           "line_two": "Apt 101",
+           "city": "San Francisco",
+           "state": "CA",
+           "country": "US",
+           "postal_code": "94131",
+           "phone_number": "+15552428478"
+       }
+   }
+}
+
+```
+
+```json
+Response
+
+{
+   "id": "checkout_session_123",
+   "buyer": {
+       "name": "John Smith",
+       "email": "johnsmith@mail.com",
+       "phone_number": "+15552003434"
+   },
+   "status": "completed",
+   "currency": "usd",
+   "line_items": [
+       {
+           "id": "line_item_456",
+           "item": {
+               "id": "item_456",
+               "quantity": 1
+           },
+           "base_amount": 300,
+           "discount": 0,
+           "subtotal": 300,
+           "tax": 30,
+           "total": 330
+       }
+   ],
+   "fulfillment_address": {
+       "name": "test",
+       "line_one": "1234 Chat Road",
+       "line_two": "Apt 101",
+       "city": "San Francisco",
+       "state": "CA",
+       "country": "US",
+       "postal_code": "94131"
+   },
+   "fulfillment_option_id": "fulfillment_option_123",
+   "totals": [
+       {
+           "type": "items_base_amount",
+           "display_text": "Item(s) total",
+           "amount": 300
+       },
+       {
+           "type": "subtotal",
+           "display_text": "Subtotal",
+           "amount": 300
+       },
+       {
+           "type": "tax",
+           "display_text": "Tax",
+           "amount": 30
+       },
+       {
+           "type": "fulfillment",
+           "display_text": "Fulfillment",
+           "Amount": 100
+       },
+       {
+           "type": "total",
+           "display_text": "Total",
+           "amount": 430
+       }
+   ],
+   "fulfillment_options": [
+       {
+           "type": "shipping",
+           "id": "fulfillment_option_123",
+           "title": "Standard",
+           "subtitle": "Arrives in 4-5 days",
+           "carrier": "USPS",
+           "earliest_delivery_time": "2025-10-12T07:20:50.52Z",
+           "latest_delivery_time": "2025-10-13T07:20:50.52Z",
+           "subtotal": 100,
+           "tax": 0,
+           "total": 100
+       },
+       {
+           "type": "shipping",
+           "id": "fulfillment_option_456",
+           "title": "Express",
+           "subtitle": "Arrives in 1-2 days",
+           "carrier": "USPS",
+           "earliest_delivery_time": "2025-10-09T07:20:50.52Z",
+           "latest_delivery_time": "2025-10-10T07:20:50.52Z",
+           "subtotal": 500,
+           "tax": 0,
+           "total": 500
+       }
+   ],
+   "messages": [],
+   "links": [
+       {
+           "type": "terms_of_use",
+           "url": "https://www.testshop.com/legal/terms-of-use"
+       }
+   ]
+}
+```
+
+### POST `/checkout_sessions/{checkout_session_id}/cancel`
+
+This endpoint will be used to cancel a checkout session, if it can be canceled. If the checkout session cannot be canceled (e.g. if the checkout session is already canceled or completed), then the server should send back a response with status 405. Any checkout session with a status that is not equal to completed or canceled should be cancelable.
+
+#### Request
+
+None
+
+#### Response
+
+| Field                 | Type                    | Required | Description                                                                                                                     | Validation                                        |
+| :-------------------- | :---------------------- | :------- | :------------------------------------------------------------------------------------------------------------------------------ | :------------------------------------------------ |
+| id                    | String                  | Yes      | Unique id that identifies the checkout session. This id will be used to update the checkout session in subsequent calls.        | None                                              |
+| buyer                 | Buyer                   | No       | Buyer information, if provided                                                                                                  | None                                              |
+| status                | String enum             | Yes      | Current status of the checkout session. Possible values are: `not_ready_for_payment` `ready_for_payment` `completed` `canceled` | None                                              |
+| currency              | String                  | Yes      | Currency code as per the ISO 4217 standard                                                                                      | Should follow the ISO 4217 standard in lower case |
+| line_items            | List[LineItem]          | Yes      | List of items and computed costs.                                                                                               | None                                              |
+| fulfillment_address   | Address                 | No       | Address to ship items to.                                                                                                       | None                                              |
+| fulfillment_options   | List[FulfillmentOption] | Yes      | All available fulfillment options and associated costs.                                                                         | None                                              |
+| fulfillment_option_id | String                  | No       | Id of the selected fulfillment option.                                                                                          | None                                              |
+| totals                | List[Total]             | Yes      | List of totals.                                                                                                                 | None                                              |
+| messages              | List[Message]           | Yes      | List of informational and error messages to be displayed to the customer.                                                       | None                                              |
+| links                 | List[Link]              | Yes      | List of links (e.g. ToS/privacy policy/etc.) to be displayed to the customer.                                                   | None                                              |
+
+### GET `/checkout_sessions/{checkout_session_id}`
+
+This endpoint is used to return update to date information about the checkout session. If the checkout session is not found, then the server should return a response with status 404.
+
+#### Request
+
+None
+
+#### Response
+
+| Field                 | Type                    | Required | Description                                                                                                                     | Validation                                        |
+| :-------------------- | :---------------------- | :------- | :------------------------------------------------------------------------------------------------------------------------------ | :------------------------------------------------ |
+| id                    | String                  | Yes      | Unique id that identifies the checkout session. This id will be used to update the checkout session in subsequent calls.        | None                                              |
+| buyer                 | Buyer                   | No       | Buyer information, if provided                                                                                                  | None                                              |
+| status                | String enum             | Yes      | Current status of the checkout session. Possible values are: `not_ready_for_payment` `ready_for_payment` `completed` `canceled` | None                                              |
+| currency              | String                  | Yes      | Currency code as per the ISO 4217 standard                                                                                      | Should follow the ISO 4217 standard in lower case |
+| line_items            | List[LineItem]          | Yes      | List of items and computed costs.                                                                                               | None                                              |
+| fulfillment_address   | Address                 | No       | Address to ship items to.                                                                                                       | None                                              |
+| fulfillment_options   | List[FulfillmentOption] | Yes      | All available fulfillment options and associated costs.                                                                         | None                                              |
+| fulfillment_option_id | String                  | No       | Id of the selected fulfillment option.                                                                                          | None                                              |
+| totals                | List[Total]             | Yes      | List of totals.                                                                                                                 | None                                              |
+| messages              | List[Message]           | Yes      | List of informational and error messages to be displayed to the customer.                                                       | None                                              |
+| links                 | List[Link]              | Yes      | List of links (e.g. ToS/privacy policy/etc.) to be displayed to the customer.                                                   | None                                              |
+
+### Response Errors
+
+If the server is unable to return a 201 response, then it should return an error of the following shape with a 4xx/5xx status.
+
+#### Error
+
+| Field   | Type        | Required | Description                                                            |
+| :------ | :---------- | :------- | :--------------------------------------------------------------------- |
+| type    | String enum | Yes      | Error type. Possible values are: `invalid_request`                     |
+| code    | String enum | Yes      | Error code. Possible values are: `request_not_idempotent`              |
+| message | String      | Yes      | Human‑readable description of the error.                               |
+| param   | String      | No       | JSONPath referring to the offending request body field, if applicable. |
+
+## Object definitions
+
+### Item
+
+| Field    | Type   | Required | Description                                        | Example Value | Validation                                   |
+| :------- | :----- | :------- | :------------------------------------------------- | :------------ | :------------------------------------------- |
+| id       | string | Yes      | Id of a piece of merchandise that can be purchased | `“itm_123”`   | `None`                                       |
+| quantity | int    | Yes      | Quantity of the item for fulfillment               | `1`           | Should be a positive integer greater than 0. |
+
+### Address
+
+| Field        | Type   | Required | Description                                      | Validation                            |
+| :----------- | :----- | :------- | :----------------------------------------------- | :------------------------------------ |
+| name         | String | Yes      | Name of the person to whom the items are shipped | Max. length is 256                    |
+| line_one     | String | Yes      | First line of address                            | Max. length is 60                     |
+| line_two     | String | No       | Optional second line of address                  | Max. length is 60                     |
+| city         | String | Yes      | Address city/district/suburb/town/village.       | Max. length is 60                     |
+| state        | String | Yes      | Address state/county/province/region.            | Should follow the ISO 3166-1 standard |
+| country      | String | Yes      | Address country                                  | Should follow the ISO 3166-1 standard |
+| postal_code  | String | Yes      | Address postal code or zip code                  | Max. length is 20                     |
+| phone_number | String | No       | Optional phone number                            | Follows the E.164 standard            |
+
+### PaymentProvider
+
+| Field                     | Type              | Required | Description                                                                                    | Validation |
+| :------------------------ | :---------------- | :------- | :--------------------------------------------------------------------------------------------- | :--------- |
+| provider                  | String enum       | Yes      | String value representing payment processor. Possible values are: `stripe` `adyen` `braintree` | None       |
+| supported_payment_methods | List[String enum] | Yes      | List of payment methods that the merchant is willing to accept. Possible values are: `card`    | None       |
+
+### Message (type = info)
+
+| Field        | Type        | Required | Description                                                                                                                                                                                          | Validation |
+| :----------- | :---------- | :------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- |
+| type         | String      | Yes      | String value representing the type of message. For an informational message, the type should be `info.`                                                                                              | None       |
+| param        | String      | Yes      | RFC 9535 JSONPath to the component of the checkout session that the message is referring to. For instance, if the message is referring to the second line item, the path would be `$.line_items[1]`. | None       |
+| content_type | String enum | Yes      | Type of the message content for rendering purposes. Possible values are: `plain` `markdown`                                                                                                          | None       |
+| content      | String      | Yes      | Raw message content.                                                                                                                                                                                 | None       |
+
+### Message (type = error)
+
+| Field        | Type        | Required | Description                                                                                                                                                                                          | Validation |
+| :----------- | :---------- | :------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- |
+| type         | String      | Yes      | String value representing the type of message. For an error message, the type should be `error.`                                                                                                     | None       |
+| code         | String enum | Yes      | Error code. Possible values are: `missing` `invalid` `out_of_stock` `payment_declined` `requires_sign_in` `requires_3ds`                                                                             | None       |
+| param        | String      | No       | RFC 9535 JSONPath to the component of the checkout session that the message is referring to. For instance, if the message is referring to the second line item, the path would be `$.line_items[1]`. | None       |
+| content_type | String enum | Yes      | Type of the message content for rendering purposes. Possible values are: `plain` `markdown`                                                                                                          | None       |
+| content      | String      | Yes      | Raw message content.                                                                                                                                                                                 | None       |
+
+### Link
+
+| Field | Type         | Required | Description                                                                                   | Validation |
+| :---- | :----------- | :------- | :-------------------------------------------------------------------------------------------- | :--------- |
+| type  | Enum(String) | Yes      | Type of the link. Possible values are: `terms_of_use` `privacy_policy` `seller_shop_policies` | None       |
+| url   | String       | Yes      | Link content specified as a URL.                                                              | None       |
+
+### Buyer
+
+| Field        | Type   | Required | Description                                              | Validation                 |
+| :----------- | :----- | :------- | :------------------------------------------------------- | :------------------------- |
+| name         | String | Yes      | Name of the buyer.                                       | Max. length is 256         |
+| email        | String | Yes      | Email address of the buyer to be used for communication. | Max. length is 256         |
+| phone_number | String | No       | Optional phone number of the buyer.                      | Follows the E.164 standard |
+
+### Line Item
+
+| Field       | Type   | Required | Description                                                                                                                                   | Validation                                                     |
+| :---------- | :----- | :------- | :-------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------- |
+| id          | String | Yes      | Id of the line item. This is different from the id of the item - two line items representing the same item will have different line item ids. | None                                                           |
+| item        | Item   | Yes      | Item that is represented by the line item.                                                                                                    | None                                                           |
+| base_amount | int    | Yes      | Integer representing item base amount before adjustments.                                                                                     | Should be >= 0                                                 |
+| discount    | int    | Yes      | Integer representing any discount applied to the item.                                                                                        | Should be >= 0                                                 |
+| subtotal    | int    | Yes      | Integer representing amount after all adjustments.                                                                                            | Should sum up to `base_amount - discount` Should be >= 0       |
+| tax         | int    | Yes      | Integer representing tax amount.                                                                                                              | Should be >= 0                                                 |
+| total       | int    | Yes      | Integer representing total amount.                                                                                                            | Should sum up to `base_amount - discount + tax` Should be >= 0 |
+
+### Total
+
+| Field        | Type        | Required | Description                                                                                                                                                    | Validation                                                                                                                                                                                           |
+| :----------- | :---------- | :------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| type         | String enum | Yes      | String value representing the type of total. Possible values are: `items_base_amount` `items_discount` `subtotal` `discount` `fulfillment` `tax` `fee` `total` | None                                                                                                                                                                                                 |
+| display_text | String      | Yes      | The text displayed to the customer for this total.                                                                                                             | None                                                                                                                                                                                                 |
+| amount       | int         | Yes      | Integer representing total amount in minor units.                                                                                                              | If type == `subtotal`, should sum to `items_base_amount - items_discount` If type == `total`, should sum to `items_base_amount - items_discount - discount + fulfillment + tax + fee` Should be >= 0 |
+
+### FulfillmentOption (type = shipping)
+
+| Field                  | Type   | Required | Description                                                                                                      | Validation                             |
+| :--------------------- | :----- | :------- | :--------------------------------------------------------------------------------------------------------------- | :------------------------------------- |
+| type                   | String | Yes      | String value representing the type of fulfillment option. For a shipping option, the value should be `shipping.` | None                                   |
+| id                     | String | Yes      | Unique ID that represents the shipping option. Unique across all fulfillment options.                            | Unique across all fulfillment options. |
+| title                  | String | Yes      | Title of the shipping option to display to the customer.                                                         | None                                   |
+| subtitle               | String | Yes      | Text content describing the estimated timeline for shipping to display to the customer.                          | None                                   |
+| carrier                | String | Yes      | Name of the shipping carrier.                                                                                    | None                                   |
+| earliest_delivery_time | String | Yes      | Estimated earliest delivery time, formatted as an RFC 3339 string.                                               | Formatted as an RFC 3339 string.       |
+| latest_delivery_time   | String | Yes      | Estimated latest delivery time, formatted as an RFC 3339 string.                                                 | Formatted as an RFC 3339 string.       |
+| subtotal               | int    | Yes      | Integer subtotal cost of the shipping option, formatted as a string.                                             | Should be >= 0                         |
+| tax                    | int    | Yes      | Integer representing tax amount.                                                                                 | Should be >= 0                         |
+| total                  | int    | Yes      | Integer total cost of the shipping option, formatted as a string.                                                | Should sum to `subtotal + tax`         |
+
+### FulfillmentOption (type = digital)
+
+| Field    | Type   | Required | Description                                                                                                    | Validation                             |
+| :------- | :----- | :------- | :------------------------------------------------------------------------------------------------------------- | :------------------------------------- |
+| type     | String | Yes      | String value representing the type of fulfillment option. For a digital option, the value should be `digital.` | None                                   |
+| id       | String | Yes      | Unique ID that represents the digital option. Unique across all fulfillment options.                           | Unique across all fulfillment options. |
+| title    | String | Yes      | Title of the digital option to display to the customer.                                                        | None                                   |
+| subtitle | String | No       | Text content describing how the item will be digitally delivered to the customer.                              | None                                   |
+| subtotal | int    | Yes      | Integer subtotal cost of the digital option, formatted as a string.                                            | Should be >= 0                         |
+| tax      | int    | Yes      | Integer representing tax amount.                                                                               | Should be >= 0                         |
+| total    | int    | Yes      | Integer total cost of the digital option, formatted as a string.                                               | Should sum to `subtotal + tax`         |
+
+### PaymentData
+
+| Field           | Type        | Required | Description                                                                                        | Validation |
+| :-------------- | :---------- | :------- | :------------------------------------------------------------------------------------------------- | :--------- |
+| token           | String      | Yes      | Token that represents the payment method.                                                          | None       |
+| provider        | String enum | Yes      | String value representing the payment processor. Possible values are: `stripe` `adyen` `braintree` | None       |
+| billing_address | Address     | No       | Optional billing address associated with the payment method                                        | None       |
+
+### Order
+
+| Field               | Type   | Required | Description                                                                                                                             | Validation |
+| :------------------ | :----- | :------- | :-------------------------------------------------------------------------------------------------------------------------------------- | :--------- |
+| id                  | String | Yes      | Unique id that identifies the order that is created after completing the checkout session.                                              | None       |
+| checkout_session_id | String | Yes      | Id that identifies the checkout session that created this order                                                                         | None       |
+| permalink_url       | String | Yes      | URL that points to the order. Customers should be able to visit this URL and provide at most their email address to view order details. | None       |
+
+## Webhooks
+
+The merchant sends OpenAI webhook events on order creation and update events. These events ensure that the buyer’s view stays in sync. The webhook events will be sent with a HMAC signature sent as a request header (i.e. `Merchant_Name-Signature`) that is created using the webhook payload and signed using a key provided by OpenAI.
+
+### Webhook Event
+
+| Field | Type        | Required | Description                                                                                 | Validation |
+| :---- | :---------- | :------- | :------------------------------------------------------------------------------------------ | :--------- |
+| type  | String enum | Yes      | String representing the type of event. Possible values are: `order_created` `order_updated` | None       |
+| data  | EventData   | Yes      | Webhook event data. See EventData for more information.                                     | None       |
+
+### EventData (type = order)
+
+| Field               | Type         | Required | Description                                                                                                                                     | Validation |
+| :------------------ | :----------- | :------- | :---------------------------------------------------------------------------------------------------------------------------------------------- | :--------- |
+| type                | String       | Yes      | String value representing the type of event data. For order data, the value should be `order`                                                   | None       |
+| checkout_session_id | String       | Yes      | ID that identifies the checkout session that created this order.                                                                                | None       |
+| permalink_url       | String       | Yes      | URL that points to the order. Customers should be able to visit this URL and provide at most their email address to view order details.         | None       |
+| status              | String enum  | Yes      | String representing the latest status of the order. Possible values are: `created` `manual_review` `confirmed` `canceled` `shipped` `fulfilled` | None       |
+| refunds             | List[Refund] | Yes      | List of refunds that have been issued for the order.                                                                                            | None       |
+
+### Refund
+
+| Field  | Type        | Required | Description                                                                                    | Validation     |
+| :----- | :---------- | :------- | :--------------------------------------------------------------------------------------------- | :------------- |
+| type   | String enum | Yes      | String representing the type of refund. Possible values are: `store_credit` `original_payment` | None           |
+| amount | integer     | Yes      | Integer representing total amount of money refunded.                                           | Should be >= 0 |
+
+---
+
+# Delegated Payment Spec
+
+## Overview
+
+The delegated payment spec allows OpenAI to securely share payment details with the merchant or its designated payment service provider (PSP). The merchant and its PSP then handle the transaction and process the related payment in the same manner as any other order and payment they collect.
+
+### Who is this spec for?
+
+Directly integrating with OpenAI via the Delegated Payment Spec is only for PSPs or PCI DSS level 1 merchants using their own vaults. For others, [Stripe’s Shared Payment Token](https://docs.stripe.com/agentic-commerce) is the first Delegated Payment Spec-compatible implementation, with more PSPs coming soon.
+
+### How it works
+
+1. Buyers check out using their preferred payment method and save it in ChatGPT.
+2. The delegated payment payload is sent to the merchant’s PSP or vault directly. The delegated payment is single-use and set with allowances.
+3. The PSP or vault returns a payment token scoped to the delegated payment outside of PCI scope.
+4. OpenAI forwards the token during the complete-checkout call to enable the merchant to complete the transaction.
+
+### Key points
+
+- **OpenAI is not the merchant of record**. Under the Agentic Commerce Protocol, merchants bring their own PSP and process payments as they would for any other digital transaction.
+- **Single-use and constrained**. The payment token is restricted by the delegated payment’s max amount and expiry, helping protect users and prevent misuse.
+- **Merchant-owned payments**. Settlement, refunds, chargebacks, and compliance remain with the merchant and their PSP.
+- **Security by design**. The Delegated Payment Spec ensures PSP-returned credentials are narrowly scoped and cannot be used outside the defined limits of the user-approved purchase.
+- **PCI Scope**. Directly integrating with the Delegated Payment Spec involves directly handling cardholder data (CHD) and may affect your PCI scope.
+
+## REST endpoints
+
+### POST /agentic_commerce/delegate_payment
+
+Call direction: OpenAI -> PSP
+
+#### Headers
+
+| Field           | Description                                               | Example Value                                   |
+| :-------------- | :-------------------------------------------------------- | :---------------------------------------------- |
+| Authorization   | API Key used to make requests                             | `Bearer api_key_123`                            |
+| Accept-Language | The preferred locale for content like messages and errors | `en-us`                                         |
+| User-Agent      | Information about the client making this request          | `ChatGPT/2.0 (Mac OS X 15.0.1; arm64; build 0)` |
+| Idempotency-Key | Key used to ensure requests are idempotent                | `idempotency_key_123`                           |
+| Request-Id      | Unique key for each request for tracing purposes          | `request_id_123`                                |
+| Content-Type    | Type of request content                                   | `application/json`                              |
+| Signature       | Base64 encoded signature of the request body              | `eyJtZX...`                                     |
+| Timestamp       | Formatted as an RFC 3339 string.                          | 2025-09-25T10:30:00Z                            |
+| API-Version     | API version                                               | 2025-09-29                                      |
+
+Exactly one of the following inputs must be present in the request body: card.
+
+#### Request
+
+| Field           | Type                     | Required | Description                                             | Example                         | Validation |
+| :-------------- | :----------------------- | :------- | :------------------------------------------------------ | :------------------------------ | :--------- |
+| payment_method  | Object                   | Yes      | Type of credential. The only accepted value is “CARD”.  | See Payment Method              | None       |
+| allowance       | Allowance object         | Yes      | Use cases that the stored credential can be applied to. | See Allowance object definition | None       |
+| billing_address | Address object           | No       | Address associated with the payment method.             | See Address object definition   | None       |
+| risk_signals    | list[Risk Signal object] | Yes      | List of risk signals                                    | See Risk Signal definition      | None       |
+| metadata        | Object (map)             | Yes      | Arbitrary key/value pairs.                              | `{ "campaign": "q4"}`           | None       |
+
+#### Response
+
+##### Success
+
+Response code: HTTP 201
+
+**Response Body**
+
+| Field    | Type   | Required | Description                                                                                   | Validation |
+| :------- | :----- | :------- | :-------------------------------------------------------------------------------------------- | :--------- |
+| id       | String | Yes      | Unique vault token identifier vt\_….                                                          | None       |
+| created  | String | Yes      | Time formatted as an RFC 3339 string                                                          | None       |
+| metadata | Object | Yes      | Arbitrary key/value pairs for correlation (e.g., `source`, `merchant_id`, `idempotency_key`). | None       |
+
+##### Error
+
+Response code: HTTP 4xx/5xx
+
+**Response Body**
+
+| Field   | Type        | Required | Description                                                                 | Example                                                               | Validation |
+| :------ | :---------- | :------- | :-------------------------------------------------------------------------- | :-------------------------------------------------------------------- | :--------- |
+| type    | String enum | Yes      | Error type                                                                  | invalid_requestrate_limit_exceededprocessing_errorservice_unavailable | None       |
+| code    | String      | Yes      | Error code                                                                  | invalid_card                                                          | None       |
+| message | String      | Yes      | Human‑readable description suitable for logs/support (often end‑user safe). | Missing/malformed field                                               | None       |
+| param   | JSONPath    | No       | Name of the offending request field, when applicable.                       | payment_method.number                                                 | None       |
+
+## Code values and meanings
+
+- **invalid_request** — Missing or malformed field; typically returns **400**.
+
+  _Example message:_ `”card field is required when payment_method_type=card”`.
+  - **invalid_card** — Credential failed basic validation (such as length or expiry); returns **400** or **422**.
+
+  - **idempotency_conflict** — Same idempotency key but different parameters; returns **409**.
+
+- **rate_limit_exceeded** — Too many requests; returns **429**.
+
+- **processing_error** — Downstream gateway or network failure; returns **500**.
+
+- **service_unavailable** — Temporary outage or maintenance; returns **503** with an optional retry_after header.
+
+## Object definitions
+
+#### Payment method
+
+| Field                     | Type           | Required | Description                                                                                                                                                         | Example                               | Validation                               |
+| ------------------------- | :------------- | :------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------- | ---------------------------------------- |
+| type                      | String enum    | Yes      | The type of payment method used. Currently only `card`.                                                                                                             | card                                  | Must be card                             |
+| card_number_type          | String enum    | Yes      | The type of card number. Network tokens are preferred with fallback to FPAN. See [PCI Scope](https://developers.openai.com/commerce/guides/production#security-and-compliance) for more details. | “fpan” or “network_token”             | Must be “fpan” or “network_token”        |
+| number                    | String         | Yes      | Card number.                                                                                                                                                        | "4242424242424242"                    |                                          |
+| exp_month                 | String         | No       | Expiry month.                                                                                                                                                       | "11"                                  | Max. length 2                            |
+| exp_year                  | String         | No       | 4 digit expiry year.                                                                                                                                                | "2026"                                | Max. length 4                            |
+| name                      | String         | No       | Cardholder name.                                                                                                                                                    | "Jane Doe"                            |                                          |
+| cvc                       | String         | No       | Card CVC number.                                                                                                                                                    | "223"                                 | Max. length 4                            |
+| cryptogram                | String         | No       | Cryptogram provided with network tokens.                                                                                                                            | "gXc5UCLnM6ckD7pjM1TdPA=="            |                                          |
+| eci_value                 | String         | No       | Electronic Commerce Indicator / Security Level Indicator provided with network tokens.                                                                              | "07"                                  |                                          |
+| checks_performed          | List\<String\> | No       | Checks already performed on the card.                                                                                                                               | \[avs, cvv, ani, auth0\]              |                                          |
+| iin                       | String         | No       | Institution Identification Number (aka BIN). The first 6 digits on a card identifying the issuer.                                                                   | "123456"                              | Max. length 6                            |
+| display_card_funding_type | String enum    | No       | Funding type of the card to display.                                                                                                                                | “credit” or “debit” or “prepaid”      | Must be “credit” or “debit” or “prepaid” |
+| display_wallet_type       | String         | No       | If the card came via a digital wallet, what type of wallet.                                                                                                         | “wallet”                              |                                          |
+| display_brand             | String         | No       | Brand of the card to display.                                                                                                                                       | “Visa”, “amex”, “discover”            |                                          |
+| display_last4             | String         | No       | In case of non-PAN, this is the original last 4 digits of the card for customer display.                                                                            | "1234"                                | Max. length 4                            |
+| metadata                  | Object (map)   | Yes      | Arbitrary key/value pairs.                                                                                                                                          | Example:`{ “issuing\_bank”: “temp” }` |                                          |
+
+### Address
+
+| Field        | Type   | Required | Description                                | Example         | Validation                            |
+| ------------ | :----- | :------- | ------------------------------------------ | --------------- | ------------------------------------- |
+| name         | String | Yes      | Customer name                              | “John Doe”      | Max. length 256                       |
+| line_one     | String | Yes      | Street line 1                              | "123 Fake St."  | Max. length 60                        |
+| line_two     | String | No       | Street line 2                              | "Unit 1"        | Max. length 60                        |
+| city         | String | Yes      | City                                       | "San Francisco" | Max. length 60                        |
+| state        | String | No       | State/region (ISO‑3166‑2 where applicable) | "CA"            | Should follow the ISO 3166-2 standard |
+| country      | String | Yes      | ISO‑3166‑1 alpha‑2                         | "US"            | Should follow the ISO 3166-1 standard |
+| postal_code  | String | Yes      | Postal/ZIP code                            | "12345"         | Max. length 20                        |
+| phone_number | String | No       | Optional phone number                      | "+15552003434"  | Follows the E.164 standard            |
+
+### Allowance
+
+| Field               | Type        | Required | Description                                      | Example                                                                      | Validation                                        |
+| ------------------- | :---------- | :------- | ------------------------------------------------ | ---------------------------------------------------------------------------- | ------------------------------------------------- |
+| reason              | String enum | Yes      | Current possible values: “one_time”              | “one_time”: should not be used again for other flows. Usage upto max amount. | Must be one_time                                  |
+| max_amount          | int         | Yes      | Max amount the payment method can be charged for | checkout_total                                                               |                                                   |
+| currency            | String      | Yes      | currency                                         | ISO-4217 (e.g., “USD”).                                                      | Should follow the ISO 4217 standard in lower case |
+| checkout_session_id | String      | Yes      | Reference to checkout_session_id                 | "1PQrsT..."                                                                  |                                                   |
+| merchant_id         | String      | Yes      | Merchant identifying descriptor                  | XX                                                                           | Max. length 256                                   |
+| expires_at          | String      | Yes      | Time formatted as an RFC 3339 string             | “2025-10-09T07:20:50.52Z”                                                    | Should follow RFC 3339 standard                   |
+
+### Risk Signal
+
+| Field  | Type        | Required | Description                | Example                                | Validation |
+| ------ | :---------- | :------- | -------------------------- | :------------------------------------- | :--------- |
+| type   | String enum | Yes      | The type of risk signal    | “card_testing”                         | None       |
+| score  | int         | Yes      | Details of the risk signal | 10                                     | None       |
+| action | String enum | Yes      | Action taken               | “blocked” “manual_review” “authorized” | None       |
+
+---
+
+# Feeds
+
+## Overview
+
+Use these endpoints to create a product feed and retrieve feed metadata.
+
+## REST endpoints
+
+- `GET /product_feeds/&#123;id&#125;` returns metadata for a feed.
+- `POST /product_feeds` creates a new product feed and returns its
+  metadata.
+
+### **GET /product_feeds/&#123;id&#125;**
+
+Returns metadata for the specified product feed.
+
+#### Path parameters
+
+| Field | Type     | Required | Description                      |
+| :---- | :------- | :------- | :------------------------------- |
+| `id`  | `string` | Yes      | Identifier for the product feed. |
+
+#### Request
+
+This endpoint does not define a request body.
+
+#### Response
+
+`200 OK`
+
+| Field            | Type     | Required | Description                                      |
+| :--------------- | :------- | :------- | :----------------------------------------------- |
+| `id`             | `string` | Yes      | Identifier for the product feed.                 |
+| `target_country` | `string` | No       | Two letter country code per ISO 3166.            |
+| `updated_at`     | `string` | No       | Timestamp of the most recent update to the feed. |
+
+`404 Not Found`
+
+Returned when the product feed is not found.
+
+### **POST /product_feeds**
+
+Creates a new product feed and returns its metadata.
+
+#### Request
+
+| Field            | Type     | Required | Description                           |
+| :--------------- | :------- | :------- | :------------------------------------ |
+| `target_country` | `string` | No       | Two letter country code per ISO 3166. |
+
+#### Response
+
+`200 OK`
+
+| Field            | Type     | Required | Description                                      |
+| :--------------- | :------- | :------- | :----------------------------------------------- |
+| `id`             | `string` | Yes      | Identifier for the product feed.                 |
+| `target_country` | `string` | No       | Two letter country code per ISO 3166.            |
+| `updated_at`     | `string` | No       | Timestamp of the most recent update to the feed. |
+
+`400 Bad Request`
+
+Returned when the product feed payload is invalid.
+
+---
+
+# File Upload
+
+The file upload schema reference now lives on the Products page.
+
+- [Stable](https://developers.openai.com/commerce/specs/file-upload/products)
+- [Draft](https://developers.openai.com/commerce/specs/file-upload/products?version=draft)
+
+---
+
+# Onboarding
+
+This guide has been consolidated into [Get started](https://developers.openai.com/commerce/guides/get-started).
+
+Use that page for:
+
+- The application form CTA.
+- The overview.
+- The integration path.
+- Feed model and delivery guidance.
+- Best practices.
+
+---
+
+# Overview
+
+The API lets you manage product feed data through three API surfaces:
+
+- [Feeds](https://developers.openai.com/commerce/specs/api/feeds) creates product feeds and retrieves feed
+  metadata.
+- [Products](https://developers.openai.com/commerce/specs/api/products) retrieves products for a feed.
+- [Promotions](https://developers.openai.com/commerce/specs/api/promotions) lets you retrieve, create, or
+  update individual promotions for a feed.
+
+To update your product catalog, [upload a feed file over SFTP](https://developers.openai.com/commerce/specs/file-upload/overview).
+
+## REST endpoints
+
+All API endpoints use the same request and response headers. See the Feeds,
+Products, and Promotions references for each endpoint's request and response bodies.
+
+### Request headers
+
+| Field             | Description                                               | Example Value                                   |
+| :---------------- | :-------------------------------------------------------- | :---------------------------------------------- |
+| `Authorization`   | API key used to make requests                             | `Bearer api_key_123`                            |
+| `Accept-Language` | The preferred locale for content like messages and errors | `en-US`                                         |
+| `User-Agent`      | Information about the client making this request          | `ChatGPT/2.0 (Mac OS X 15.0.1; arm64; build 0)` |
+| `Idempotency-Key` | Key used to ensure requests are idempotent                | `idempotency_key_123`                           |
+| `Request-Id`      | Unique key for each request for tracing purposes          | `request_id_123`                                |
+| `Content-Type`    | Type of request content                                   | `application/json`                              |
+| `Timestamp`       | Formatted as an RFC 3339 string                           | `2025-09-25T10:30:00Z`                          |
+| `API-Version`     | API version                                               | `2025-09-12`                                    |
+
+### Response headers
+
+| Field             | Description                           | Example Value         |
+| :---------------- | :------------------------------------ | :-------------------- |
+| `Idempotency-Key` | Idempotency key passed in the request | `idempotency_key_123` |
+| `Request-Id`      | Request ID passed in the request      | `request_id_123`      |
+
+---
+
+# Overview
+
+Use this guide to move from first sample to production feed delivery with
+minimal back-and-forth, and use the
+[products spec](https://developers.openai.com/commerce/specs/file-upload/products) for full schema and field
+definitions.
+
+If you upload a product feed through Ads Manager, use the [Ads product feeds
+guide](https://developers.openai.com/ads/product-feeds#use-the-correct-feed-schema) for the additional Ads
+eligibility requirement before you upload.
+
+## Feed model and delivery
+
+### Supported feed type
+
+- **Full snapshot feed**: a complete catalog export treated as the source of truth.
+- **Recommended cadence**: at least daily.
+
+### Delivery and file requirements
+
+| Topic              | Guidance                                                                                                                                           |
+| :-------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Delivery model     | Push feeds to OpenAI via SFTP.                                                                                                                     |
+| Formats            | Prefer `parquet` (ideally with `ztsd` compression). `jsonl.gz`, `csv.gz`, and `tsv.gz` are also supported.                                         |
+| Encoding           | UTF-8                                                                                                                                              |
+| Filename stability | Use a stable file name. Keep the same file name on every update and overwrite it with the latest snapshot instead of creating a new name each run. |
+| Update behavior    | If you use multiple shard files, keep that shard set stable and replace the same shard files on each update.                                       |
+| Shard sizing       | Up to 500k items per shard is recommended; target shard files under ~500MB                                                                         |
+
+### Watch common ingestion failures
+
+- Missing required fields
+- Outdated or non-spec field names
+- Malformed field values
+
+### Understand product retention and removal
+
+A product is not deleted immediately when missing from a processed snapshot.
+OpenAI retains its most recently processed record for up to 14 days.
+This protects products from disappearing because a shard is temporarily missing
+or delayed.
+
+- To make a product ineligible for search the next time OpenAI processes a snapshot, set
+  `is_eligible_search=false`.
+- To remove a product by omission, leave it out of every shard in later full
+  snapshots. The retained record expires within 14 days.
+
+### Operate as a snapshot pipeline
+
+- Publish full snapshots on a predictable cadence (at least daily).
+
+### Update multi-file feeds
+
+The SFTP root directory represents your entire catalog. You do not need to send
+a completion marker. After uploads stop changing for a short time, OpenAI
+processes every file in the root directory.
+
+- Reuse the same shard filenames and overwrite them in place.
+- Upload all shards without long pauses. If processing starts before every shard
+  arrives, OpenAI processes the complete root directory again after the remaining
+  shards arrive and uploads stop changing.
+- OpenAI matches products by `item_id`, not by filename, so moving a product between
+  shards does not reset it. When possible, use a deterministic rule based on
+  `item_id` for predictable shard assignment.
+- If multiple brand feeds share one location, use clear brand-prefixed names.
+
+### Validate in phases
+
+- Start with a small sample (around 100 items).
+- Include all required fields in every sample row.
+- Run QA on the first full snapshot.
+- Move to steady-state automation once validation is clean.
+
+---
+
+# Products
+
+## Overview
+
+Retrieve the current products for a feed. To update product data, [upload a feed file over SFTP](https://developers.openai.com/commerce/specs/file-upload/overview).
+
+## REST endpoints
+
+### **GET /product_feeds/&#123;id&#125;/products**
+
+Returns the products for the specified feed.
+
+#### Path parameters
+
+| Field | Type     | Required | Description              |
+| :---- | :------- | :------- | :----------------------- |
+| `id`  | `string` | Yes      | Identifier for the feed. |
+
+#### Request
+
+This endpoint does not define a request body.
+
+#### Response
+
+`200 OK`
+
+| Field            | Type        | Required | Description                               |
+| :--------------- | :---------- | :------- | :---------------------------------------- |
+| `target_country` | `string`    | No       | Two letter country code per ISO 3166.     |
+| `products`       | `Product[]` | Yes      | Array of products for the specified feed. |
+
+`404 Not Found`
+
+Returned when the feed is not found.
+
+## Schema reference
+
+### Product
+
+| Field         | Type           | Required | Description                                |
+| :------------ | :------------- | :------- | :----------------------------------------- |
+| `id`          | `string`       | Yes      | Stable global identifier for this product. |
+| `title`       | `string`       | No       | Product title.                             |
+| `description` | `Description`  | No       | Product description content.               |
+| `url`         | `string (uri)` | No       | Canonical product URL.                     |
+| `media`       | `Media[]`      | No       | Product-level media assets.                |
+| `variants`    | `Variant[]`    | Yes      | Variants associated with the product.      |
+
+### Variant
+
+| Field             | Type              | Required | Description                                                      |
+| :---------------- | :---------------- | :------- | :--------------------------------------------------------------- |
+| `id`              | `string`          | Yes      | Stable global identifier for this variant.                       |
+| `title`           | `string`          | Yes      | Variant title.                                                   |
+| `description`     | `Description`     | No       | Variant description content.                                     |
+| `url`             | `string (uri)`    | No       | Variant URL.                                                     |
+| `barcodes`        | `Barcode[]`       | No       | Variant barcode values.                                          |
+| `price`           | `Price`           | No       | Active sale price for this variant.                              |
+| `list_price`      | `Price`           | No       | Reference price before any discount is applied.                  |
+| `unit_price`      | `UnitPrice`       | No       | Unit pricing metadata.                                           |
+| `availability`    | `Availability`    | No       | Availability state for the variant.                              |
+| `categories`      | `Category[]`      | No       | Categories associated with the variant.                          |
+| `condition`       | `Condition`       | No       | Applicable item conditions.                                      |
+| `variant_options` | `VariantOption[]` | No       | Set of option selections for the variant, such as color or size. |
+| `media`           | `Media[]`         | No       | Variant media assets. The first entry is treated as primary.     |
+| `seller`          | `Seller`          | No       | Seller metadata for the variant.                                 |
+
+### Description
+
+At least one of the following fields must be present.
+
+| Field      | Type     | Required | Description             |
+| :--------- | :------- | :------- | :---------------------- |
+| `plain`    | `string` | No       | Plain-text description. |
+| `html`     | `string` | No       | HTML description.       |
+| `markdown` | `string` | No       | Markdown description.   |
+
+### Availability
+
+| Field       | Type      | Required | Description                                                                                                                          |
+| :---------- | :-------- | :------- | :----------------------------------------------------------------------------------------------------------------------------------- |
+| `available` | `boolean` | No       | Indicates whether the variant is currently purchasable.                                                                              |
+| `status`    | `string`  | No       | Fulfillment state when availability is reported, for example `in_stock`, `backorder`, `preorder`, `out_of_stock`, or `discontinued`. |
+
+### Price
+
+| Field      | Type      | Required | Description                                        |
+| :--------- | :-------- | :------- | :------------------------------------------------- |
+| `amount`   | `integer` | Yes      | Monetary amount expressed in ISO 4217 minor units. |
+| `currency` | `string`  | Yes      | Three-letter ISO 4217 currency identifier.         |
+
+### UnitPrice
+
+| Field       | Type               | Required | Description         |
+| :---------- | :----------------- | :------- | :------------------ |
+| `amount`    | `integer`          | Yes      | Unit price amount.  |
+| `currency`  | `string`           | Yes      | Currency code.      |
+| `measure`   | `Measure`          | Yes      | Measured quantity.  |
+| `reference` | `ReferenceMeasure` | Yes      | Reference quantity. |
+
+### Measure
+
+| Field   | Type     | Required | Description    |
+| :------ | :------- | :------- | :------------- |
+| `value` | `number` | Yes      | Measure value. |
+| `unit`  | `string` | Yes      | Measure unit.  |
+
+### ReferenceMeasure
+
+| Field   | Type      | Required | Description      |
+| :------ | :-------- | :------- | :--------------- |
+| `value` | `integer` | Yes      | Reference value. |
+| `unit`  | `string`  | Yes      | Reference unit.  |
+
+### Barcode
+
+| Field   | Type     | Required | Description    |
+| :------ | :------- | :------- | :------------- |
+| `type`  | `string` | Yes      | Barcode type.  |
+| `value` | `string` | Yes      | Barcode value. |
+
+### Media
+
+| Field      | Type           | Required | Description     |
+| :--------- | :------------- | :------- | :-------------- |
+| `type`     | `string`       | Yes      | Media type.     |
+| `url`      | `string (uri)` | Yes      | Media URL.      |
+| `alt_text` | `string`       | No       | Alternate text. |
+| `width`    | `integer`      | No       | Media width.    |
+| `height`   | `integer`      | No       | Media height.   |
+
+### VariantOption
+
+| Field   | Type     | Required | Description                         |
+| :------ | :------- | :------- | :---------------------------------- |
+| `name`  | `string` | Yes      | Option name, such as color or size. |
+| `value` | `string` | Yes      | Selected option value.              |
+
+### Category
+
+| Field      | Type     | Required | Description                                                                                               |
+| :--------- | :------- | :------- | :-------------------------------------------------------------------------------------------------------- |
+| `value`    | `string` | Yes      | Category label or hierarchical path.                                                                      |
+| `taxonomy` | `string` | No       | Taxonomy system used for the category value, such as `google_product_category`, `shopify`, or `merchant`. |
+
+### Seller
+
+| Field   | Type     | Required | Description           |
+| :------ | :------- | :------- | :-------------------- |
+| `name`  | `string` | No       | Seller name.          |
+| `links` | `Link[]` | No       | Seller-related links. |
+
+### Link
+
+| Field   | Type     | Required | Description                                                                                                      |
+| :------ | :------- | :------- | :--------------------------------------------------------------------------------------------------------------- |
+| `type`  | `string` | Yes      | Kind of destination, such as `privacy_policy`, `terms_of_service`, `refund_policy`, `shipping_policy`, or `faq`. |
+| `title` | `string` | No       | Link title.                                                                                                      |
+| `url`   | `string` | Yes      | Link destination URL.                                                                                            |
+
+### Condition
+
+`Condition` is an array of strings describing applicable item conditions, such as `new` or `secondhand`. More than one value may apply.
+
+---
+
+# Products
+
+Use this reference for supported file uploads. Start with discovery data, then
+add the fields required for your Ads or checkout integration.
+
+
+
+<h2 id="feed-reference">Feed Reference</h2>
+
+      Start with the required product fields and a minimal example. Optional
+      fields describe variants, product attributes, shipping, and returns.
+      Ads product feeds follow the [Ads product feeds
+      guide](https://developers.openai.com/ads/product-feeds#use-the-correct-feed-schema). Checkout requires
+      a separately enabled integration.
+
+
+
+### Start with discovery
+
+Submit one row per purchasable item or variant. Include the nine required
+fields in [Basic product data](#basic-product-data), then add the optional data
+that describes your products. Ads and checkout have separate requirements.
+
+- [Basic product data](#basic-product-data) and [minimal example](#minimal-example)
+- [Identity and variants](#variants)
+- [Product attributes](#item-information), [images](#media), and [prices](#price--promotions)
+- [Shipping](#fulfillment), [returns](#returns), and [reviews](#reviews-and-qa)
+- [Markets](#geo-tagging), [Ads](#ads), and [checkout](#checkout)
+
+#### Value conventions
+
+These tables describe what to submit. Required fields must contain a value;
+conditional requirements apply only to the stated use case. Format guidance is
+not a guarantee that every invalid value will be rejected at upload.
+
+For optional fields, omit an unknown value. Unless a row says otherwise, an
+omitted field, JSON `null`, or an empty delimited cell supplies no value. Do not
+use placeholder strings such as `null`, `unknown`, or `n/a`; `unknown` is valid
+only where explicitly listed. An empty value does not mean zero or `false`.
+For boolean fields, use JSON `true` or `false`, or the lowercase strings `true` and
+`false` in delimited files. These values are not valid for other field types.
+
+Use UTF-8 text and absolute HTTP or HTTPS URLs; prefer HTTPS. Product and image
+URLs must be publicly accessible. Keep identifiers as strings to preserve
+leading zeros. In CSV, quote a cell containing commas, quotes, or newlines, and
+double each embedded quote. JSON objects in CSV or TSV cells must be serialized
+as JSON. Use the [file upload guide](https://developers.openai.com/commerce/specs/file-upload/overview) for delivery.
+
+### Basic product data
+
+These fields are required for a useful discovery feed. Use a real brand and
+seller name, not placeholders. Keep titles concise and descriptions in plain
+text; aim for at most 150 and 5,000 characters, respectively.
+
+| Attribute      | Data type      | Requirement | Description                                                                                                                                                                           | Example                                                         |
+| :------------- | :------------- | :---------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :-------------------------------------------------------------- |
+| `item_id`      | String         | Required    | Stable ID, unique per item or variant within your feed. Never reuse it for a different item. See [identity rules](#variants).                                                         | `TRAIL-BLK-10`                                                  |
+| `title`        | String         | Required    | Product name, including the selected variant when relevant.                                                                                                                           | `Trail running shoes — black, size 10`                          |
+| `description`  | String         | Required    | Factual product description for this item.                                                                                                                                            | `Waterproof trail shoes with a rubber outsole and mesh lining.` |
+| `url`          | String (URL)   | Required    | Product detail page for the item, with the variant selected when possible. Keep it stable.                                                                                            | `https://example.com/products/trail?color=black&size=10`        |
+| `brand`        | String         | Required    | Product brand as shown on the product page.                                                                                                                                           | `Northline`                                                     |
+| `seller_name`  | String         | Required    | Name of the seller supplying this offer. For marketplace offers, see [merchant information](#merchant-info).                                                                          | `Northline Outdoor`                                             |
+| `image_url`    | String (URL)   | Required    | Main product image, showing this variant. Use a direct image URL, such as a JPEG or PNG.                                                                                              | `https://example.com/images/trail-black.jpg`                    |
+| `availability` | String         | Required    | `in_stock`, `out_of_stock`, `pre_order`, `backorder`, or `unknown`. Omitted, empty, or unrecognized values reject the row. Use `unknown` explicitly when stock status is unavailable. | `in_stock`                                                      |
+| `price`        | String (money) | Required    | Regular item price in major currency units. See [prices](#price--promotions).                                                                                                         | `79.99 USD`                                                     |
+
+#### Minimal example
+
+This JSONL record describes one item. Search defaults to enabled and checkout
+to disabled. Ads defaults to disabled unless your feed has an Ads default configured.
+Replace the example URLs with your public product and image URLs.
+```jsonl
+{"item_id":"MUG-350-BLUE","title":"Blue ceramic mug, 350 mL","description":"Dishwasher-safe glazed ceramic mug with a handle.","url":"https://example.com/products/mug-blue","brand":"Northline","seller_name":"Northline Home","image_url":"https://example.com/images/mug-blue.jpg","price":"18.00 USD","availability":"in_stock"}
+```
+
+Use an explicit availability value. `unknown` does not assert that the item is
+in stock.
+
+### OpenAI flags
+
+| Attribute            | Data type | Requirement | Description                                                                                                                                        | Example |
+| :------------------- | :-------- | :---------- | :------------------------------------------------------------------------------------------------------------------------------------------------- | :------ |
+| `is_eligible_search` | boolean   | Optional    | `true` enables search eligibility; `false` disables it and checkout eligibility. Omitted or empty: `true`. Eligibility does not guarantee display. | `true`  |
+
+### Variants
+
+Use `item_id` for the specific item, `group_id` for its parent listing, and
+`offer_id` for a seller's offer. Keep all three stable when price, stock, title,
+or images change. **Never include price in an offer ID.**
+
+For variants, send a separate row for each selection, with a distinct `item_id`,
+the same `group_id`, `listing_has_variations=true`, and a `variant_dict` of the
+selected options. The group ID must differ from each item ID. Use the same
+option names across a group, and unique option combinations. Group only
+variants of the same product as presented on your site. Each row carries its
+own price, availability, URL, and images.
+
+| Attribute                | Data type               | Requirement                         | Description                                                                                                                                                                                                 | Example                         |
+| :----------------------- | :---------------------- | :---------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------ |
+| `group_id`               | String                  | Conditionally required for variants | Stable parent-listing ID shared by all variants. Omitted or empty: uses `item_id`, which does not establish a variant group.                                                                                | `TRAIL`                         |
+| `listing_has_variations` | boolean                 | Conditionally required for variants | Set `true` on every variant row. Omitted, empty, or `false`: no variant options are used.                                                                                                                   | `true`                          |
+| `variant_dict`           | Object of string values | Conditionally required for variants | Map option names to the selected values. Requires `listing_has_variations=true` and `group_id` different from `item_id`; otherwise ignored. Use nonempty keys and values. An empty object means no options. | `{"color":"Black","size":"10"}` |
+| `offer_id`               | String                  | Optional                            | Stable offer ID, unique within the feed. Use it to distinguish offers that share a product URL. Omitted or empty: no explicit offer ID; do not rely on this to distinguish multiple sellers at one URL.     | `northline-TRAIL-BLK-10`        |
+| `gtin`                   | String                  | Optional                            | One assigned GTIN: exactly 8, 12, 13, or 14 digits, including a valid check digit. Preserve leading zeros; no spaces or dashes. Omit if unassigned.                                                         | `09506000134352`                |
+| `mpn`                    | String                  | Optional                            | Manufacturer-assigned part number, preserving its punctuation and casing. Submit with `brand`; do not invent a value to replace a missing GTIN.                                                             | `NL-TRAIL-10-BLK`               |
+
+A GTIN identifies the specific trade item, not the variant group. UPC-A is a
+12-digit GTIN; an ISBN-13 can be submitted as a 13-digit GTIN. Do not submit an
+ISBN-10. To check the final digit, start at the rightmost digit before it,
+multiply alternate digits by 3 and 1, sum them, and choose the check digit that
+makes the total divisible by 10. Validate identifiers before uploading.
+
+#### Variant-group example
+
+Both records belong to `TRAIL`. Each record selects one size and has a stable
+offer ID. The JSON is expanded for readability; in your JSONL file, write each
+complete record on one line.
+
+Size 10 (`in_stock`):
+
+```json
+{
+  "item_id": "TRAIL-BLK-10",
+  "group_id": "TRAIL",
+  "listing_has_variations": true,
+  "variant_dict": {
+    "color": "Black",
+    "size": "10"
+  },
+  "offer_id": "northline-TRAIL-BLK-10",
+  "title": "Trail running shoes — black, size 10",
+  "description": "Waterproof trail shoes with a rubber outsole.",
+  "url": "https://example.com/products/trail?color=black&size=10",
+  "brand": "Northline",
+  "seller_name": "Northline Outdoor",
+  "image_url": "https://example.com/images/trail-black.jpg",
+  "price": "79.99 USD",
+  "availability": "in_stock"
+}
+```
+
+Size 11 (`out_of_stock`):
+
+```json
+{
+  "item_id": "TRAIL-BLK-11",
+  "group_id": "TRAIL",
+  "listing_has_variations": true,
+  "variant_dict": {
+    "color": "Black",
+    "size": "11"
+  },
+  "offer_id": "northline-TRAIL-BLK-11",
+  "title": "Trail running shoes — black, size 11",
+  "description": "Waterproof trail shoes with a rubber outsole.",
+  "url": "https://example.com/products/trail?color=black&size=11",
+  "brand": "Northline",
+  "seller_name": "Northline Outdoor",
+  "image_url": "https://example.com/images/trail-black.jpg",
+  "price": "79.99 USD",
+  "availability": "out_of_stock"
+}
+```
+
+### Item information
+
+Keep top-level attributes consistent with the same options in `variant_dict`.
+Neither representation reconciles conflicting values for you.
+
+| Attribute          | Data type        | Requirement                                     | Description                                                                                                                                                                                                                  | Example                                                  |
+| :----------------- | :--------------- | :---------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------- |
+| `condition`        | String           | Optional                                        | Use `new`, `refurbished`, or `used`. Omitted or empty may be treated as `new`; always specify used or refurbished condition.                                                                                                 | `new`                                                    |
+| `product_category` | String           | Optional                                        | Your category path, from broad to specific, separated by `>`.                                                                                                                                                                | `Apparel & Accessories > Shoes`                          |
+| `material`         | String           | Optional                                        | Principal materials in the item.                                                                                                                                                                                             | `Leather and rubber`                                     |
+| `color`            | String           | Optional                                        | Selected color, consistent with the product image.                                                                                                                                                                           | `Black`                                                  |
+| `size`             | String           | Optional                                        | Selected size label; use `variant_dict` when size distinguishes variants. A sizing system requires the setup described in [additional supported data](#additional-supported-data).                                           | `10`                                                     |
+| `gender`           | String           | Optional                                        | `male`, `female`, or `unisex`. Omitted, empty, or unrecognized: no gender supplied.                                                                                                                                          | `unisex`                                                 |
+| `age_group`        | String           | Optional                                        | `newborn`, `infant`, `toddler`, `kids`, or `adult`. Omitted, empty, or unrecognized: no age group supplied. This is a product attribute, not a purchase-age restriction.                                                     | `adult`                                                  |
+| `dimensions`       | Object           | Optional                                        | Positive decimal strings for at least two of `length`, `width`, and `height`, plus `unit`: `in`, `cm`, `ft`, `m`, or `mm`. No other keys. Overrides the separate dimension fields. Empty object is invalid; omit if unknown. | `{"length":"30","width":"20","height":"12","unit":"cm"}` |
+| `length`           | String (decimal) | Optional                                        | Positive product length; requires `dimensions_unit`. Use with `width` or `height`. Ignored when structured `dimensions` is supplied.                                                                                         | `30`                                                     |
+| `width`            | String (decimal) | Optional                                        | Positive product width; requires `dimensions_unit`. Use with `length` or `height`. Ignored when structured `dimensions` is supplied.                                                                                         | `20`                                                     |
+| `height`           | String (decimal) | Optional                                        | Positive product height; requires `dimensions_unit`. Use with `length` or `width`. Ignored when structured `dimensions` is supplied.                                                                                         | `12`                                                     |
+| `dimensions_unit`  | String           | Conditionally required with separate dimensions | `in`, `cm`, `ft`, `m`, or `mm`; one unit for all supplied axes. Omitted: no unit conversion or inference.                                                                                                                    | `cm`                                                     |
+| `weight`           | String (decimal) | Optional                                        | Positive net product weight, without packaging. Requires `item_weight_unit`.                                                                                                                                                 | `0.75`                                                   |
+| `item_weight_unit` | String           | Conditionally required with `weight`            | Use `g`, `kg`, `oz`, or `lb`. Omitted: no unit conversion or inference.                                                                                                                                                      | `kg`                                                     |
+
+Use `dimensions` for new feeds. Supply the product's dimensions, not its
+shipping package dimensions. Convert measurements before uploading; units are
+not inferred from the market or sizing system. The separate dimension fields
+remain supported for existing feeds.
+
+### Media
+
+| Attribute               | Data type                                       | Requirement | Description                                                                                                                                          | Example                                                                                     |
+| :---------------------- | :---------------------------------------------- | :---------- | :--------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------ |
+| `additional_image_urls` | Array of URL strings, or comma-separated string | Optional    | Additional views of this item. Omitted, empty, or `[]`: no additional images. Invalid URLs are omitted. Percent-encode commas inside a URL as `%2C`. | `["https://example.com/images/trail-side.jpg","https://example.com/images/trail-sole.jpg"]` |
+
+In a CSV cell, encode the same list as
+`"https://example.com/images/trail-side.jpg,https://example.com/images/trail-sole.jpg"`.
+Use an array in JSONL. Do not use spaces or semicolons as list separators.
+
+### Price & promotions
+
+Write money as `amount CURRENCY`, for example `79.99 USD`: a decimal amount in
+major units, a space, and an uppercase three-letter ISO 4217 currency code.
+`79.99 USD` means 79 dollars and 99 cents, not 7,999 dollars. Use a decimal point,
+no thousands separators or exponent notation, and no more fractional digits
+than the currency permits. For USD, use two decimal places. Do not round a
+price into a different payable amount.
+
+Use a positive regular price for discovery and the currency agreed for your
+feed. Submit the current price; update the feed when a sale starts or ends.
+
+| Attribute    | Data type      | Requirement | Description                                                                                                                                                                                       | Example     |
+| :----------- | :------------- | :---------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :---------- |
+| `sale_price` | String (money) | Optional    | Current sale price: greater than zero, strictly less than `price`, and in the same currency. Omitted or empty: use `price`. A nonpositive, equal, higher, or different-currency sale is not used. | `59.99 USD` |
+
+### Availability & inventory
+
+Submit current stock status with each row. Use `pre_order` for an item offered
+before release and `backorder` for an item temporarily awaiting stock. These
+values do not schedule a future stock change. Update `availability` when the
+item becomes available or sells out.
+
+### Merchant info
+
+| Attribute    | Data type    | Requirement | Description                                                                                                                                       | Example                                |
+| :----------- | :----------- | :---------- | :------------------------------------------------------------------------------------------------------------------------------------------------ | :------------------------------------- |
+| `seller_url` | String (URL) | Optional    | Seller's storefront or profile page. For a marketplace offer, use the specific seller's page. Omitted, empty, or invalid: no seller URL supplied. | `https://example.com/stores/northline` |
+
+For a third-party seller, `seller_name` identifies that seller and
+`marketplace_seller` identifies the marketplace where checkout occurs. The
+latter requires [feed setup](#additional-supported-data). The OpenAI format
+requires `seller_name` on each row. Do not assume registration supplies other
+row fields.
+
+### Fulfillment
+
+Shipping support depends on your feed setup. Confirm which of these two
+representations your integration accepts before supplying it. A shipping
+amount describes a charge; it does not quote a checkout total or guarantee a
+delivery date.
+
+| Attribute        | Data type      | Requirement                            | Description                                                                                                                                                                                                                        | Example                 |
+| :--------------- | :------------- | :------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------- |
+| `shipping_price` | String (money) | Optional                               | OpenAI-format shipping charge, in the same currency as `price`. Use a nonnegative amount; zero means no charge. Omitted or empty means unknown, not free shipping. Confirm display support for your integration.                   | `5.00 USD`              |
+| `shipping`       | String         | Optional; requires feed-specific setup | For integrations configured for shipping tuples: exactly `country:region:service_class:price`. Use a supported country, an optional region, a service name, and a nonnegative money amount. Omitted or empty: no shipping details. | `US::Standard:5.00 USD` |
+
+The tuple form has four positions; keep the empty region position when it does
+not apply. It is not a list of regional overrides. Handling-day and transit-day
+suffixes are not part of this supported tuple. Do not send both representations
+for the same charge. Adding a `shipping` column to a standard OpenAI-format feed
+does not enable tuple support.
+
+### Returns
+
+Describe return acceptance separately from the policy URL and return window. A
+return window is a duration, not a deadline date.
+
+| Attribute                 | Data type    | Requirement | Description                                                                                                                                                                                                                                    | Example                       |
+| :------------------------ | :----------- | :---------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------- |
+| `accepts_returns`         | boolean      | Optional    | `true`: accepts returns. `false`: rejects returns. Omitted or empty: unspecified. A policy URL does not set or override this field.                                                                                                            | `true`                        |
+| `return_deadline_in_days` | Integer      | Optional    | Positive whole number of days allowed for returns under your policy. Supply only with `accepts_returns=true`; it does not enable returns by itself. Omitted or empty: no window supplied. Use the policy to explain when the window starts.    | `30`                          |
+| `return_policy`           | String (URL) | Optional    | Public policy for this item's returns or final-sale terms. A valid URL does not set or override `accepts_returns`. If you omit the field, leave it empty, or supply a value other than an HTTP or HTTPS URL, the parser omits the policy link. | `https://example.com/returns` |
+
+For a final-sale item, send `accepts_returns=false` and omit the return window.
+You can include a valid `return_policy` URL that explains the restriction.
+
+### Reviews and Q&A
+
+Use review aggregates for the product or variant represented by the row. The
+count and rating must describe the same review population. If your product page
+shares reviews across variants, use that same group aggregate on each variant;
+do not sum it again across rows. Omit a rating when there are no reviews.
+
+| Attribute      | Data type        | Requirement | Description                                                                                                                                                                                       | Example |
+| :------------- | :--------------- | :---------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :------ |
+| `review_count` | Integer          | Optional    | Nonnegative whole number of product reviews. Zero means no reviews; omitted or empty means unknown. Exclude seller and store reviews.                                                             | `254`   |
+| `star_rating`  | String (decimal) | Optional    | Average product rating on a 0–5 scale, to two decimal places. Pair it with the matching positive `review_count`. Omitted or empty: no rating supplied. A zero rating may be omitted from display. | `4.50`  |
+
+Raw review entries and question-and-answer lists are not part of this discovery
+contract. Store aggregates have a separate scope and require the setup in the
+next section.
+
+#### Additional supported data
+
+These optional fields require an integration configured to carry them. Confirm
+support during onboarding before relying on them; adding these columns alone
+to a standard OpenAI-format upload does not enable them.
+
+| Attribute            | Data type        | Requirement                                                               | Description                                                                                                                                                                                                                          | Example               |
+| :------------------- | :--------------- | :------------------------------------------------------------------------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------- |
+| `marketplace_seller` | String           | Conditionally required for third-party marketplace offers; requires setup | Marketplace where checkout occurs. Keep distinct from the supplying `seller_name`. Omitted or empty: no marketplace identity supplied.                                                                                               | `Example Marketplace` |
+| `size_system`        | String           | Optional; requires setup                                                  | Sizing convention for `size`: use `US`, `UK`, `EU`, `DE`, `FR`, `JP`, `CN`, `IT`, `BR`, `MEX`, or `AU`. These are sizing labels, not destination-country codes. Omitted or empty: no system supplied; no size conversion is implied. | `US`                  |
+| `store_review_count` | Integer          | Optional; requires setup                                                  | Nonnegative store or seller review count. Use the same store and review population as `store_star_rating`; do not combine with product reviews. Zero: no reviews; omitted or empty: unknown.                                         | `2000`                |
+| `store_star_rating`  | String (decimal) | Optional; requires setup                                                  | Average for that store's reviews on a 0–5 scale, to two decimal places. Pair with a positive `store_review_count`. Omitted or empty: no rating supplied. Zero can be treated as unrated.                                             | `4.70`                |
+| `accepts_exchanges`  | boolean          | Optional; requires setup                                                  | `true`: exchanges accepted for this item; `false`: not accepted. Omitted or empty: unspecified. Supply consistently with your returns policy; exchange messaging may depend on accepted returns and a return window.                 | `false`               |
+| `is_digital`         | boolean          | Optional; requires setup                                                  | `true`: digital item with no physical shipment; `false`: physical item. Omitted or empty: unspecified, so do not rely on omission for digital checkout.                                                                              | `false`               |
+
+### Geo tagging
+
+The standard OpenAI-format upload currently targets the US. Row-level market
+columns do not change that default. Use additional markets only after OpenAI
+confirms the integration and its allowed countries and currencies. A currency,
+product URL, or sizing system does not select a destination market.
+
+| Attribute          | Data type        | Requirement                     | Description                                                                                                                                                                                                                                             | Example  |
+| :----------------- | :--------------- | :------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :------- |
+| `target_countries` | Array of strings | Optional; requires market setup | Destination countries. Use uppercase ISO 3166-1 alpha-2 codes configured for your feed; the shared format currently represents `US`, `CA`, and `MX`. Standard uploads use `["US"]` regardless of this column. Omitted or empty does not mean worldwide. | `["US"]` |
+| `store_country`    | String           | Optional; requires market setup | Country of the seller's store. Standard uploads use `US` regardless of this column. It is not a regional price or stock override. Omitted or empty does not select another market.                                                                      | `US`     |
+
+Confirm multi-country support for your integration; do not rely on list order
+to choose a market.
+
+
+
+
+### Ads
+
+Ads feeds use the product data in this reference plus the [Ads product feeds
+guide](https://developers.openai.com/ads/product-feeds#use-the-correct-feed-schema). These fields are not
+required for discovery.
+
+| Attribute         | Data type               | Requirement                               | Description                                                                                                                                                                                          | Example                       |
+| :---------------- | :---------------------- | :---------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------- |
+| `is_ads_eligible` | boolean                 | Conditionally required for Ads processing | Set `true` for products Ads should process. `false` explicitly opts out in the OpenAI format. Omitted or empty: disabled unless a feed-level Ads default applies. Independent of search eligibility. | `true`                        |
+| `ads_metadata`    | Object of string values | Optional for Ads                          | Product-filter metadata using keys configured for your Ads integration. Omitted, empty, or `{}`: no metadata. Do not invent targeting keys; confirm them during Ads setup.                           | `{"custom_label_0":"summer"}` |
+
+### Checkout
+
+Checkout requires a separately enabled integration. Setting an eligibility flag
+does not complete checkout onboarding. Continue to provide accurate discovery
+data and configure digital-item support when applicable.
+
+| Attribute               | Data type    | Requirement                                 | Description                                                                                                                                                                              | Example                       |
+| :---------------------- | :----------- | :------------------------------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------- |
+| `is_eligible_checkout`  | boolean      | Conditionally required to opt into checkout | `true` opts in only when search eligibility is also `true` and checkout is enabled for the integration. Omitted, empty, or `false`: disabled. Search set to `false` overrides this flag. | `true`                        |
+| `seller_privacy_policy` | String (URL) | Conditionally required for checkout         | Public privacy policy for the seller. Omitted, empty, or invalid: no policy URL supplied; it does not establish checkout readiness.                                                      | `https://example.com/privacy` |
+| `seller_tos`            | String (URL) | Conditionally required for checkout         | Public terms of service for the seller. Omitted, empty, or invalid: no terms URL supplied; it does not establish checkout readiness.                                                     | `https://example.com/terms`   |
+
+### Compatibility notes
+
+Existing `Custom_variant1_category` / `Custom_variant1_option` pairs, and the
+corresponding `2` and `3` pairs, remain accepted along with lowercase aliases.
+Migrate each pair to one entry in `variant_dict`, with the category as the key
+and the selected option as the value. An explicit `variant_dict` takes
+precedence. Do not mix representations; an explicit empty map does not fall
+back to the legacy pairs.
+
+Existing aliases remain accepted: `id` or `sku` for `item_id`, `item_group_id`
+for `group_id`, `enable_search` for `is_eligible_search`, `enable_checkout` for
+`is_eligible_checkout`, `is_eligible_ads` for `is_ads_eligible`, and
+`return_window` for `return_deadline_in_days`. Send only one name per value:
+`item_id` wins over `id` and `sku`; `group_id` wins over `item_group_id`; the
+`enable_` flags win over their `is_eligible_` names; `is_ads_eligible` wins over
+its alias; and `return_window` wins over `return_deadline_in_days`.
+
+Sale-window dates, expiration dates, and availability dates do not schedule
+price or availability changes in this contract. Update current prices and
+availability in your feed when they change. Do not rely on uploaded dates to
+remove a product or display a pre-order date. Warning and age-restriction fields
+do not establish purchase restrictions.
+
+---
+
+# Promotions
+
+## Overview
+
+Use these endpoints to retrieve the current promotions for a feed or upsert
+partial promotion changes matched by `id`.
+
+## REST endpoints
+
+- `GET /product_feeds/&#123;id&#125;/promotions` returns the
+  promotions for the specified feed.
+- `PATCH /product_feeds/&#123;id&#125;/promotions` upserts promotions
+  into the specified feed. Promotions are matched by `id`, and
+  promotions not included in the request remain unchanged.
+
+### **GET /product_feeds/&#123;id&#125;/promotions**
+
+Returns the promotions for the specified feed.
+
+#### Path parameters
+
+| Field | Type     | Required | Description              |
+| :---- | :------- | :------- | :----------------------- |
+| `id`  | `string` | Yes      | Identifier for the feed. |
+
+#### Request
+
+This endpoint does not define a request body.
+
+#### Response
+
+`200 OK`
+
+| Field | Type          | Required | Description                                 |
+| :---- | :------------ | :------- | :------------------------------------------ |
+| `[]`  | `Promotion[]` | Yes      | Array of promotions for the specified feed. |
+
+`404 Not Found`
+
+Returned when the feed is not found.
+
+### **PATCH /product_feeds/&#123;id&#125;/promotions**
+
+Upserts promotions into the specified feed. Promotions are matched by `id`. Promotions not included in the request remain unchanged.
+
+#### Path parameters
+
+| Field | Type     | Required | Description              |
+| :---- | :------- | :------- | :----------------------- |
+| `id`  | `string` | Yes      | Identifier for the feed. |
+
+#### Request
+
+| Field | Type          | Required | Description                       |
+| :---- | :------------ | :------- | :-------------------------------- |
+| `[]`  | `Promotion[]` | Yes      | Array of promotions for the feed. |
+
+#### Response
+
+`200 OK`
+
+Returns the following acceptance object:
+
+| Field      | Type      | Required | Description                                 |
+| :--------- | :-------- | :------- | :------------------------------------------ |
+| `id`       | `string`  | Yes      | Identifier for the feed.                    |
+| `accepted` | `boolean` | Yes      | Whether the promotion payload was accepted. |
+
+`400 Bad Request`
+
+Returned when the promotion payload is invalid.
+
+`404 Not Found`
+
+Returned when the feed is not found.
+
+## Schema reference
+
+### Promotion
+
+| Field           | Type                 | Required | Description                                     |
+| :-------------- | :------------------- | :------- | :---------------------------------------------- |
+| `id`            | `string`             | Yes      | Promotion identifier.                           |
+| `title`         | `string`             | Yes      | Promotion title.                                |
+| `description`   | `Description`        | No       | Promotion description content.                  |
+| `status`        | `PromotionStatus`    | No       | Promotion status.                               |
+| `active_period` | `DateTimeRange`      | Yes      | Start and end time for the promotion.           |
+| `benefits`      | `PromotionBenefit[]` | Yes      | Benefits applied by the promotion.              |
+| `applies_to`    | `ProductTarget[]`    | No       | Products or variants targeted by the promotion. |
+| `url`           | `string (uri)`       | No       | Canonical promotion URL.                        |
+
+### Description
+
+At least one of the following fields must be present.
+
+| Field      | Type     | Required | Description             |
+| :--------- | :------- | :------- | :---------------------- |
+| `plain`    | `string` | No       | Plain-text description. |
+| `html`     | `string` | No       | HTML description.       |
+| `markdown` | `string` | No       | Markdown description.   |
+
+### Price
+
+| Field      | Type      | Required | Description                                        |
+| :--------- | :-------- | :------- | :------------------------------------------------- |
+| `amount`   | `integer` | Yes      | Monetary amount expressed in ISO 4217 minor units. |
+| `currency` | `string`  | Yes      | Currency identifier.                               |
+
+### DateTimeRange
+
+| Field        | Type     | Required | Description      |
+| :----------- | :------- | :------- | :--------------- |
+| `start_time` | `string` | Yes      | Start timestamp. |
+| `end_time`   | `string` | Yes      | End timestamp.   |
+
+### PromotionStatus
+
+`PromotionStatus` is a string. Known values include `draft`, `scheduled`, `active`, `expired`, and `disabled`.
+
+### PromotionBenefit
+
+`PromotionBenefit` is a union of:
+
+- `AmountOffBenefit`
+- `PercentOffBenefit`
+- `FreeShippingBenefit`
+
+### AmountOffBenefit
+
+| Field        | Type    | Required | Description           |
+| :----------- | :------ | :------- | :-------------------- |
+| `type`       | `const` | Yes      | Must be `amount_off`. |
+| `amount_off` | `Price` | Yes      | Amount discounted.    |
+
+### PercentOffBenefit
+
+| Field         | Type     | Required | Description            |
+| :------------ | :------- | :------- | :--------------------- |
+| `type`        | `const`  | Yes      | Must be `percent_off`. |
+| `percent_off` | `number` | Yes      | Percentage discounted. |
+
+### FreeShippingBenefit
+
+| Field  | Type    | Required | Description              |
+| :----- | :------ | :------- | :----------------------- |
+| `type` | `const` | Yes      | Must be `free_shipping`. |
+
+### ProductTarget
+
+| Field         | Type       | Required | Description                           |
+| :------------ | :--------- | :------- | :------------------------------------ |
+| `product_id`  | `string`   | Yes      | Product targeted by the promotion.    |
+| `variant_ids` | `string[]` | No       | Variants targeted within the product. |

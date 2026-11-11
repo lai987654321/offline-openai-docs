@@ -1,0 +1,8 @@
+.cache/
+__pycache__/
+*.pyc
+*.zip
+download-log.jsonl
+.DS_Store
+Thumbs.db
+*.sync-tmp

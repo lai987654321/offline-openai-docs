@@ -1,0 +1,449 @@
+# Configure workload identity federation with X.509 certificates
+
+> For the complete documentation index, see [llms.txt](/llms.txt). Markdown versions of documentation pages are available by appending `.md` to the page URL.
+
+X.509 workload identity federation lets a workload exchange an identity from a TLS client certificate for a short-lived OpenAI access token. The workload then calls the OpenAI API with both the access token and an accepted client certificate. This flow replaces the API key, not the client certificate.
+
+X.509 workload identity federation is available for the OpenAI API. Codex does
+  not support it. For Codex, use an OIDC token or SPIFFE JWT-SVID.
+
+For token exchange request and response details, see the [workload identity token exchange reference](https://developers.openai.com/api/reference/workload-identity-federation#exchange-an-x509-certificate). For Mutual TLS permissions, certificate requirements, activation, mTLS hosts, and rotation, see the [Mutual TLS guide](https://developers.openai.com/api/docs/guides/mutual-tls).
+
+## How it works
+
+An X.509 workload identity exchange has five parts:
+
+1. Your organization uploads and activates a trusted root certificate in its existing Mutual TLS settings.
+2. An X.509 Workload Identity Provider derives `openai.*` attributes from the verified client certificate. It must derive one non-empty `openai.subject` value.
+3. A service account mapping authorizes the derived identity to use one OpenAI service account within a project.
+4. The workload presents its certificate to the X.509 token endpoint on `mtls.auth.openai.com` and requests a short-lived bearer token. The certificate comes from the TLS connection; the request body doesn't contain a `subject_token`.
+5. The workload presents the bearer token and a client certificate to an API route on `mtls.api.openai.com` for API authorization.
+
+The bearer token and the certificate are authorized independently on the API request. A certificate by itself doesn't authorize an OpenAI API call.
+
+## Before you begin
+
+You need:
+
+- Permission to manage Mutual TLS certificates and Workload Identity Providers for your organization.
+- A project and service account for the workload.
+- A client certificate, its private key, and any intermediate certificates required to build a path to your trusted root.
+- An active trusted root certificate at the organization or project level.
+
+Keep private keys outside source control and restrict access to the workload that uses them. Don't log private keys, certificate contents, or returned access tokens.
+
+## Configure Mutual TLS certificate trust
+
+X.509 Workload Identity Providers reuse your organization's existing Mutual TLS certificate configuration. They don't upload certificates or maintain a separate certificate trust store.
+
+Follow the [Mutual TLS guide](https://developers.openai.com/api/docs/guides/mutual-tls) to review certificate
+requirements, mTLS hosts, certificate activation behavior, CEL filters, and
+client configuration. Then open [Organization settings > Security > Mutual
+TLS](https://platform.openai.com/settings/organization/security/mtls), upload
+the trusted certificate in PEM format, and activate it for the organization or
+for each project that will use X.509 workload identity federation.
+
+If your client certificate chains through an intermediate certificate, configure the stable trust anchor and present the leaf followed by the current intermediate certificates during the TLS handshake. OpenAI uses intermediates provided by the request and doesn't retrieve missing intermediates from certificate URLs.
+
+## Configure an X.509 provider
+
+To configure an X.509 provider:
+
+1. Open [Organization settings > Security > Workload Identity Provider](https://platform.openai.com/settings/organization/security/workload-identity-provider), then select **Create identity provider**.
+2. Choose **X.509** for **Provider type**, then enter a name and optional description. X.509 providers don't use OIDC issuer, audience, discovery, or JWKS settings. You can't change the provider type after you create it.
+3. Under **Advanced**, optionally add an **Attribute conditions** CEL expression to reject certificates before mapping resolution.
+4. Under **Attribute transformations**, enter a non-empty expression for the required `openai.subject` transformation. The dashboard adds the `subject` row when you select X.509 and displays and applies the `openai.` prefix. Choose a stable certificate fact that identifies the workload.
+5. Optionally add transformations with other unique `openai.*` names, then select **Create**.
+
+For example, this configuration uses the certificate common name as the canonical subject and exposes the organizational unit as an additional mapping attribute:
+
+```json
+[
+  {
+    "attribute": "openai.subject",
+    "expression": "assertion.subject.common_name"
+  },
+  {
+    "attribute": "openai.environment",
+    "expression": "assertion.subject.organizational_unit"
+  }
+]
+```
+
+Certificate facts are available under `assertion.subject` and `assertion.subject_alt_names`. Transformation results used for mappings must be scalar values. Additional transformations must have unique `openai.*` names.
+
+For example, an **Attribute conditions** expression can restrict the provider to production certificates:
+
+```text
+assertion.subject.organizational_unit == "Production"
+```
+
+## Create a service account mapping
+
+1. From the X.509 provider details page, select **Create mapping**.
+2. Select the target project and service account, and grant only the API permissions the workload needs.
+3. In the **Key** and **Value** fields, require an exact `openai.subject` value. X.509 mappings support either no assertions, represented as an empty object (`{}`), or assertions whose keys start with `openai.`.
+4. Select **Create**.
+
+For example:
+
+| Key              | Value                   |
+| ---------------- | ----------------------- |
+| `openai.subject` | `payments-service-prod` |
+
+X.509 mappings use derived `openai.*` attributes. They don't match raw JWT claims such as `sub`, `iss`, or `aud`.
+
+The provider list displays the provider ID, and the mapping details display the selected service account and its service account ID. Record both identifiers; the workload sends them during token exchange.
+
+## Use X.509 workload identity with an SDK
+
+Set environment variables for the certificate chain, private key, provider, and service account:
+
+```bash
+export OPENAI_MTLS_CERT_CHAIN="/path/to/client-chain.pem"
+export OPENAI_MTLS_KEY="/path/to/client-key.pem"
+export OPENAI_IDENTITY_PROVIDER_ID="idp_example"
+export OPENAI_SERVICE_ACCOUNT_ID="svc_acct_example"
+```
+
+The certificate-chain file should contain the leaf certificate first, followed by any intermediate certificates. Don't include certificate material or a `subject_token` in the request body.
+
+Configure an OpenAI SDK client with these values. The SDK presents the client certificate during token exchange and API requests, routes API requests to the mTLS endpoint, and renews short-lived access tokens automatically.
+
+Authenticate with an X.509 client certificate
+
+```javascript
+import { readFile } from "node:fs/promises";
+
+import OpenAI from "openai";
+import { workloadIdentity } from "openai/auth/x509-transport";
+
+const certificatePath = process.env.OPENAI_MTLS_CERT_CHAIN;
+const privateKeyPath = process.env.OPENAI_MTLS_KEY;
+const identityProviderId = process.env.OPENAI_IDENTITY_PROVIDER_ID;
+const serviceAccountId = process.env.OPENAI_SERVICE_ACCOUNT_ID;
+
+if (
+  !certificatePath ||
+  !privateKeyPath ||
+  !identityProviderId ||
+  !serviceAccountId
+) {
+  throw new Error(
+    "Set OPENAI_MTLS_CERT_CHAIN, OPENAI_MTLS_KEY, OPENAI_IDENTITY_PROVIDER_ID, and OPENAI_SERVICE_ACCOUNT_ID"
+  );
+}
+
+const credential = workloadIdentity.fromX509({
+  certificateChain: await readFile(certificatePath, "utf8"),
+  privateKey: await readFile(privateKeyPath, "utf8"),
+  identityProviderId,
+  serviceAccountId,
+});
+
+try {
+  const client = new OpenAI({ credential });
+  const response = await client.responses.create({
+    model: "gpt-5.6-terra",
+    input: "Say hello from X.509 workload identity federation.",
+  });
+
+  console.log(response.output_text);
+} finally {
+  await credential.close();
+}
+```
+
+```python
+import os
+import ssl
+
+from openai import DefaultHttpx2Client, OpenAI
+from openai.auth import x509_workload_identity
+
+tls_context = ssl.create_default_context()
+tls_context.load_cert_chain(
+    certfile=os.environ["OPENAI_MTLS_CERT_CHAIN"],
+    keyfile=os.environ["OPENAI_MTLS_KEY"],
+)
+
+with OpenAI(
+    base_url="https://mtls.api.openai.com/v1",
+    workload_identity=x509_workload_identity(
+        identity_provider_id=os.environ["OPENAI_IDENTITY_PROVIDER_ID"],
+        service_account_id=os.environ["OPENAI_SERVICE_ACCOUNT_ID"],
+    ),
+    http_client=DefaultHttpx2Client(verify=tls_context, follow_redirects=False),
+) as client:
+    response = client.responses.create(
+        model="gpt-5.6-terra",
+        input="Say hello from X.509 workload identity federation.",
+    )
+
+    print(response.output_text)
+```
+
+```go
+package main
+
+import (
+	"context"
+	"crypto/tls"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/auth"
+	"github.com/openai/openai-go/v3/option"
+	"github.com/openai/openai-go/v3/responses"
+)
+
+func main() {
+	certificate, err := tls.LoadX509KeyPair(
+		os.Getenv("OPENAI_MTLS_CERT_CHAIN"),
+		os.Getenv("OPENAI_MTLS_KEY"),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	transport, err := auth.NewX509Transport(&http.Transport{
+		TLSClientConfig: &tls.Config{
+			Certificates: []tls.Certificate{certificate},
+			MinVersion:   tls.VersionTLS12,
+		},
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer transport.Close()
+
+	client := openai.NewClient(
+		option.WithX509WorkloadIdentity(auth.X509WorkloadIdentity{
+			IdentityProviderID: os.Getenv("OPENAI_IDENTITY_PROVIDER_ID"),
+			ServiceAccountID:   os.Getenv("OPENAI_SERVICE_ACCOUNT_ID"),
+			Transport:          transport,
+		}),
+	)
+
+	response, err := client.Responses.New(context.Background(), responses.ResponseNewParams{
+		Model: "gpt-5.6-terra",
+		Input: responses.ResponseNewParamsInputUnion{
+			OfString: openai.String("Say hello from X.509 workload identity federation."),
+		},
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(response.OutputText())
+}
+```
+
+```java
+import com.openai.client.OpenAIClient;
+import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.client.okhttp.X509Transport;
+import com.openai.client.okhttp.X509WorkloadIdentity;
+import com.openai.models.responses.ResponseCreateParams;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.KeyStore;
+import java.time.Duration;
+import java.util.Arrays;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509ExtendedKeyManager;
+import javax.net.ssl.X509TrustManager;
+
+char[] password = System.getenv("OPENAI_X509_KEYSTORE_PASSWORD").toCharArray();
+try {
+  KeyStore keyStore = KeyStore.getInstance("PKCS12");
+  try (InputStream input =
+      Files.newInputStream(Paths.get(System.getenv("OPENAI_X509_KEYSTORE_PATH")))) {
+    keyStore.load(input, password);
+  }
+
+  KeyManagerFactory keyManagers =
+      KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+  keyManagers.init(keyStore, password);
+  X509ExtendedKeyManager keyManager =
+      Arrays.stream(keyManagers.getKeyManagers())
+          .filter(X509ExtendedKeyManager.class::isInstance)
+          .map(X509ExtendedKeyManager.class::cast)
+          .findFirst()
+          .orElseThrow(() -> new IllegalStateException("No X.509 key manager available"));
+
+  TrustManagerFactory trustManagers =
+      TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+  trustManagers.init((KeyStore) null);
+  X509TrustManager trustManager =
+      Arrays.stream(trustManagers.getTrustManagers())
+          .filter(X509TrustManager.class::isInstance)
+          .map(X509TrustManager.class::cast)
+          .findFirst()
+          .orElseThrow(() -> new IllegalStateException("No X.509 trust manager available"));
+
+  X509Transport transport =
+      X509Transport.builder()
+          .keyManager(keyManager)
+          .certificateAlias(System.getenv("OPENAI_X509_CERTIFICATE_ALIAS"))
+          .trustManager(trustManager)
+          .build();
+  X509WorkloadIdentity identity =
+      X509WorkloadIdentity.builder()
+          .identityProviderId(System.getenv("OPENAI_IDENTITY_PROVIDER_ID"))
+          .serviceAccountId(System.getenv("OPENAI_SERVICE_ACCOUNT_ID"))
+          .transport(transport)
+          .refreshBuffer(Duration.ofMinutes(10))
+          .build();
+
+  OpenAIClient client = OpenAIOkHttpClient.builder().x509WorkloadIdentity(identity).build();
+  try {
+    ResponseCreateParams params =
+        ResponseCreateParams.builder()
+            .model("gpt-5.6-terra")
+            .input("Say hello from X.509 workload identity federation.")
+            .build();
+
+    client.responses().create(params).output().stream()
+        .flatMap(item -> item.message().stream())
+        .flatMap(message -> message.content().stream())
+        .flatMap(content -> content.outputText().stream())
+        .forEach(outputText -> System.out.println(outputText.text()));
+  } finally {
+    client.close();
+  }
+} finally {
+  Arrays.fill(password, '\0');
+}
+```
+
+```ruby
+require "openai"
+require "openssl"
+
+certificate_chain = OpenSSL::X509::Certificate.load(
+  File.binread(ENV.fetch("OPENAI_MTLS_CERT_CHAIN"))
+)
+certificate, *intermediates = certificate_chain
+private_key = OpenSSL::PKey.read(File.binread(ENV.fetch("OPENAI_MTLS_KEY")))
+
+http_client = OpenAI::NetHTTPClient.new do |connection|
+  connection.cert = certificate
+  connection.extra_chain_cert = intermediates
+  connection.key = private_key
+end
+
+workload_identity = OpenAI::Auth::X509WorkloadIdentity.new(
+  identity_provider_id: ENV.fetch("OPENAI_IDENTITY_PROVIDER_ID"),
+  service_account_id: ENV.fetch("OPENAI_SERVICE_ACCOUNT_ID"),
+  http_client: http_client
+)
+
+begin
+  client = OpenAI::Client.new(api_key: nil, workload_identity: workload_identity)
+  response = client.responses.create(
+    model: "gpt-5.6-terra",
+    input: "Say hello from X.509 workload identity federation."
+  )
+
+  puts(response.output_text)
+ensure
+  http_client.close
+end
+```
+
+
+These examples require OpenAI SDK versions that support the X.509 configuration shown here: JavaScript 7.8.0 or later with the `undici` peer dependency installed, Python 3.6.0 or later, Go 3.54.0 or later, Java 4.55.0 or later, and Ruby 0.83.0 or later.
+
+The Java example loads a PKCS12 keystore to construct its `X509ExtendedKeyManager` and uses the platform default trust store to construct its `X509TrustManager`. Set `OPENAI_X509_KEYSTORE_PATH`, `OPENAI_X509_KEYSTORE_PASSWORD`, and `OPENAI_X509_CERTIFICATE_ALIAS` for this example. You can instead supply PEM-backed or hardware-backed managers to the SDK.
+
+## Exchange the certificate manually
+
+To inspect or implement the token exchange protocol directly, present the certificate to the X.509 token endpoint:
+
+```bash
+curl --cert "$OPENAI_MTLS_CERT_CHAIN" \
+  --key "$OPENAI_MTLS_KEY" \
+  --request POST "https://mtls.auth.openai.com/oauth/token" \
+  --header "Content-Type: application/json" \
+  --data @- <<JSON
+{
+  "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+  "subject_token_type": "urn:openai:params:oauth:token-type:x509",
+  "identity_provider_id": "${OPENAI_IDENTITY_PROVIDER_ID}",
+  "service_account_id": "${OPENAI_SERVICE_ACCOUNT_ID}"
+}
+JSON
+```
+
+A successful exchange returns an ordinary short-lived bearer token:
+
+```json
+{
+  "access_token": "eyJ...",
+  "issued_token_type": "urn:ietf:params:oauth:token-type:access_token",
+  "token_type": "Bearer",
+  "expires_in": 3600,
+  "expires_at": 1789045200,
+  "scope": "api.model.read api.model.request"
+}
+```
+
+The `scope` property is returned only when the matching service account mapping has permissions.
+
+The expiration values are illustrative. The returned lifetime can be shorter when the verified client certificate expires sooner. See the [token exchange response fields](https://developers.openai.com/api/reference/workload-identity-federation#response) for the units and meaning of `expires_in` and `expires_at`.
+
+Read the `access_token` value from the successful response into your application's credential store or an environment variable such as `OPENAI_WIF_ACCESS_TOKEN`. Treat it as a secret and don't print, log, or commit it.
+
+## Call the OpenAI API manually
+
+Set `OPENAI_MODEL` to `gpt-6-astra`, the current default, or another model available to the target project. Then send the bearer token and an accepted client certificate to the API mTLS endpoint:
+
+```bash
+curl --request POST \
+  --cert "$OPENAI_MTLS_CERT_CHAIN" \
+  --key "$OPENAI_MTLS_KEY" \
+  --header "Authorization: Bearer $OPENAI_WIF_ACCESS_TOKEN" \
+  --header "Content-Type: application/json" \
+  --data "{\"model\":\"$OPENAI_MODEL\",\"input\":\"Say hello in one sentence.\"}" \
+  "https://mtls.api.openai.com/v1/responses"
+```
+
+Use the bearer token instead of an API key, and continue to present an accepted client certificate on the API request.
+
+The bearer isn't cryptographically bound to the certificate. Reusing the exchange certificate for the API request is the most direct configuration, but the API request can use another certificate that independently satisfies the same current API mTLS policy.
+
+## Token lifetime and renewal
+
+An X.509 workload identity token expires after at most one hour and never outlives the verified client certificate. The exchange doesn't return a refresh token. Repeat the certificate exchange to obtain another access token.
+
+For manual exchanges, keep `expires_at` with the access token and schedule another exchange before that timestamp. Allow for clock differences and request latency. See [token renewal guidance](https://developers.openai.com/api/docs/guides/workload-identity-federation#renew-the-access-token) for an example.
+
+Rotating an intermediate certificate doesn't require changing the configured root. Present the new complete chain on subsequent exchanges and API requests.
+
+## Troubleshoot token exchange
+
+X.509 token exchange returns generic OAuth errors and doesn't expose certificate, root, provider, or mapping details.
+
+| Result                  | Typical causes                                                                                                                                                                                           |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| HTTP `403`              | The request used a method or path other than exact `POST /oauth/token` on `mtls.auth.openai.com`.                                                                                                        |
+| `invalid_subject_token` | The TLS client certificate is missing or invalid, the presented chain can't reach an active root, the certificate is outside its validity period, or a Mutual TLS certificate-admission rule rejects it. |
+| `invalid_grant`         | The provider or mapping is invalid or disabled, a provider **Attribute conditions** expression rejects the identity, no applicable roots are active, or no mapping matches.                              |
+| Server error            | OpenAI returned a temporary server error. Retry according to your normal transient-error policy.                                                                                                         |
+
+An X.509 exchange never falls back to an OIDC or ordinary OAuth flow.
+
+## Limitations
+
+- X.509 Workload Identity Providers don't maintain a separate certificate trust store.
+- The bearer token isn't certificate-bound and doesn't use DPoP or a `cnf` claim.
+- The certificate exchange isn't certificate-only API authorization. API requests still require the bearer token and an accepted client certificate.
+- OpenAI doesn't fetch missing intermediate certificates from AIA URLs. Present the complete chain during TLS negotiation.
+- OpenAI doesn't perform certificate revocation list (CRL) or OCSP checks during this flow. Plan certificate incident response around Mutual TLS root, provider, and mapping controls and the short lifetime of issued tokens.
+- This flow doesn't add support for SPIFFE X.509-SVIDs. The [SPIFFE guide](https://developers.openai.com/api/docs/guides/workload-identity-federation/spiffe) continues to use JWT-SVIDs.

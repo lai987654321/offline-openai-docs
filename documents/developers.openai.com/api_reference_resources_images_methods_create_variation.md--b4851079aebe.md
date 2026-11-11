@@ -1,0 +1,299 @@
+> For the complete documentation index, see [llms.txt](/llms.txt). Markdown versions of documentation pages are available by appending `.md` to the page URL.
+
+## Create image variation
+
+**post** `/images/variations`
+
+This endpoint is retired and no longer available. Use the image edits endpoint with a GPT Image model and a prompt to create a variation of an image. The request and response schemas below describe the legacy contract.
+
+### Body Parameters
+
+Content type: `multipart/form-data`
+
+- `image: string`
+
+  The image to use as the basis for the variation(s). Must be a valid PNG file, less than 4MB, and square.
+
+- `model: optional string or ImageModel or null (default: "dall-e-2")`
+
+  The legacy model used by the retired image variations endpoint. This endpoint no longer accepts requests.
+
+  - `string`
+
+  - `ImageModel = "gpt-image-1.5" or "gpt-image-2" or "gpt-image-2-2026-04-21" or 11 more`
+
+    - `"gpt-image-1.5"`
+
+    - `"gpt-image-2"`
+
+    - `"gpt-image-2-2026-04-21"`
+
+    - `"gpt-image-2.5-sunburst"`
+
+    - `"gpt-image-2.5-sunburst-2026-09-08"`
+
+    - `"gpt-image-2.5-flare"`
+
+    - `"gpt-image-2.5-flare-2026-09-08"`
+
+    - `"gpt-image-2.6-sunburst"`
+
+    - `"gpt-image-2.6-flare"`
+
+    - `"gpt-image-1"`
+
+    - `"gpt-image-1-mini"`
+
+    - `"chatgpt-image-latest"`
+
+    - `"dall-e-2"`
+
+    - `"dall-e-3"`
+
+- `n: optional integer or null (default: 1)`
+
+  The number of images to generate. Must be between 1 and 10.
+
+  `minimum: 1`, `maximum: 10`
+
+- `response_format: optional "url" or "b64_json" or null (default: "url")`
+
+  The format in which the generated images are returned. Must be one of `url` or `b64_json`. URLs are only valid for 60 minutes after the image has been generated.
+
+  - `"url"`
+
+  - `"b64_json"`
+
+- `size: optional "256x256" or "512x512" or "1024x1024" or null (default: "1024x1024")`
+
+  The size of the generated images. Must be one of `256x256`, `512x512`, or `1024x1024`.
+
+  - `"256x256"`
+
+  - `"512x512"`
+
+  - `"1024x1024"`
+
+- `user: optional string`
+
+  A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse. [Learn more](/api/docs/guides/safety-best-practices#implement-safety-identifiers).
+
+### Returns
+
+- `ImagesResponse object { created, background, data, 6 more }`
+
+  The response from the image generation endpoint.
+
+  - `created: integer`
+
+    The Unix timestamp (in seconds) of when the image was created.
+
+    `format: unixtime`
+
+  - `background: optional "transparent" or "opaque"`
+
+    The background parameter used for the image generation. Either `transparent` or `opaque`.
+
+    - `"transparent"`
+
+    - `"opaque"`
+
+  - `data: optional array of Image`
+
+    The list of generated images.
+
+    - `b64_json: optional string`
+
+      The base64-encoded JSON of the generated image. Returned by default for GPT image models, or when `response_format` is set to `b64_json` for models that support that parameter.
+
+    - `revised_prompt: optional string`
+
+      The revised prompt used to generate the image, for models that support prompt revision. Not returned by GPT image models.
+
+    - `url: optional string`
+
+      The URL of the generated image when `response_format` is set to `url` for models that support that parameter. Unsupported for GPT image models.
+
+      `format: uri`
+
+  - `output_format: optional "png" or "webp" or "jpeg" or 2 more`
+
+    The output format of the generated or edited image.
+
+    - `"png"`
+
+    - `"webp"`
+
+    - `"jpeg"`
+
+    - `"gif"`
+
+    - `"svg"`
+
+  - `quality: optional "low" or "medium" or "high" or 2 more`
+
+    The quality of the image generated. One of `low`, `medium`, `high`, `xhigh`, or `max`.
+
+    - `"low"`
+
+    - `"medium"`
+
+    - `"high"`
+
+    - `"xhigh"`
+
+    - `"max"`
+
+  - `safety_identifier: optional string or null`
+
+    The effective safety identifier used for safety monitoring and abuse detection. This is the non-empty `safety_identifier` from the request, or the deprecated `user` value when `safety_identifier` is omitted, null, or empty.
+
+  - `size: optional string or "1024x1024" or "1024x1536" or "1536x1024"`
+
+    The image dimensions as a `WIDTHxHEIGHT` string, for example `1536x864`.
+
+    - `string`
+
+    - `"1024x1024" or "1024x1536" or "1536x1024"`
+
+      The image dimensions as a `WIDTHxHEIGHT` string, for example `1536x864`.
+
+      - `"1024x1024"`
+
+      - `"1024x1536"`
+
+      - `"1536x1024"`
+
+  - `svg_usage: optional object { input_tokens, model, output_tokens, 2 more }`
+
+    Token usage for SVG authoring, separate from image rendering usage.
+
+    - `input_tokens: integer`
+
+    - `model: string`
+
+    - `output_tokens: integer`
+
+    - `reasoning_tokens: integer`
+
+    - `total_tokens: integer`
+
+  - `usage: optional object { input_tokens, input_tokens_details, output_tokens, 2 more }`
+
+    Token usage information for image generation with GPT Image models.
+
+    - `input_tokens: integer`
+
+      The number of tokens (images and text) in the input prompt.
+
+    - `input_tokens_details: object { image_tokens, text_tokens }`
+
+      The input tokens detailed information for the image generation.
+
+      - `image_tokens: integer`
+
+        The number of image tokens in the input prompt.
+
+      - `text_tokens: integer`
+
+        The number of text tokens in the input prompt.
+
+    - `output_tokens: integer`
+
+      The number of output tokens generated by the model.
+
+    - `total_tokens: integer`
+
+      The total number of tokens (images and text) used for the image generation.
+
+    - `output_tokens_details: optional object { image_tokens, text_tokens }`
+
+      The output token details for the image generation.
+
+      - `image_tokens: integer`
+
+        The number of image output tokens generated by the model.
+
+      - `text_tokens: integer`
+
+        The number of text output tokens generated by the model.
+
+### Example
+
+```http
+curl https://api.openai.com/v1/images/variations \
+    -H 'Content-Type: multipart/form-data' \
+    -H "Authorization: Bearer $OPENAI_API_KEY" \
+    -F 'image=@/path/to/image' \
+    -F model=dall-e-2 \
+    -F n=1 \
+    -F response_format=url \
+    -F size=1024x1024 \
+    -F user=user-1234
+```
+
+#### 200 — Example
+
+```json
+{
+  "created": 0,
+  "background": "transparent",
+  "data": [
+    {
+      "b64_json": "b64_json",
+      "revised_prompt": "revised_prompt",
+      "url": "https://example.com"
+    }
+  ],
+  "output_format": "png",
+  "quality": "low",
+  "safety_identifier": "safety_identifier",
+  "size": "1024x1024",
+  "svg_usage": {
+    "input_tokens": 0,
+    "model": "model",
+    "output_tokens": 0,
+    "reasoning_tokens": 0,
+    "total_tokens": 0
+  },
+  "usage": {
+    "input_tokens": 0,
+    "input_tokens_details": {
+      "image_tokens": 0,
+      "text_tokens": 0
+    },
+    "output_tokens": 0,
+    "total_tokens": 0,
+    "output_tokens_details": {
+      "image_tokens": 0,
+      "text_tokens": 0
+    }
+  }
+}
+```
+
+### Example
+
+```http
+curl https://api.openai.com/v1/images/variations \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
+  -F image="@otter.png" \
+  -F n=2 \
+  -F size="1024x1024"
+```
+
+#### Response example
+
+```json
+{
+  "created": 1589478378,
+  "data": [
+    {
+      "url": "https://..."
+    },
+    {
+      "url": "https://..."
+    }
+  ]
+}
+```

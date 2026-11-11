@@ -1,0 +1,214 @@
+# Supported countries and territories
+
+> For the complete documentation index, see [llms.txt](/llms.txt). Markdown versions of documentation pages are available by appending `.md` to the page URL.
+
+Accessing or offering access to our services outside of the countries and territories listed below may result in your account being blocked or suspended.
+
+- Albania
+- Algeria
+- Afghanistan
+- Aland Islands
+- Andorra
+- Angola
+- Antigua and Barbuda
+- Argentina
+- Armenia
+- Aruba
+- Australia
+- Austria
+- Azerbaijan
+- Bahamas
+- Bahrain
+- Bangladesh
+- Barbados
+- Belgium
+- Belize
+- Bermuda
+- Benin
+- Bhutan
+- Bolivia
+- Bosnia and Herzegovina
+- Botswana
+- Brazil
+- Brunei
+- Bulgaria
+- Burkina Faso
+- Burundi
+- Cabo Verde
+- Cambodia
+- Cameroon
+- Canada
+- Cayman Islands
+- Central African Republic
+- Chad
+- Chile
+- Colombia
+- Comoros
+- Congo (Brazzaville)
+- Congo (DRC)
+- Costa Rica
+- Côte d'Ivoire
+- Croatia
+- Cyprus
+- Czechia (Czech Republic)
+- Denmark
+- Djibouti
+- Dominica
+- Dominican Republic
+- Ecuador
+- Egypt
+- El Salvador
+- Equatorial Guinea
+- Eritrea
+- Estonia
+- Eswatini (Swaziland)
+- Ethiopia
+- Faroe Islands
+- Fiji
+- Finland
+- France
+- French Guiana
+- French Polynesia
+- French Southern Territories
+- Gabon
+- Gambia
+- Georgia
+- Germany
+- Ghana
+- Greece
+- Grenada
+- Greenland
+- Guatemala
+- Guadeloupe
+- Guinea
+- Guinea-Bissau
+- Guyana
+- Haiti
+- Holy See (Vatican City)
+- Honduras
+- Hungary
+- Iceland
+- India
+- Indonesia
+- Iraq
+- Ireland
+- Israel
+- Italy
+- Jamaica
+- Japan
+- Jordan
+- Kazakhstan
+- Kenya
+- Kiribati
+- Kuwait
+- Kyrgyzstan
+- Laos
+- Latvia
+- Lebanon
+- Lesotho
+- Liberia
+- Libya
+- Liechtenstein
+- Lithuania
+- Luxembourg
+- Madagascar
+- Malawi
+- Malaysia
+- Maldives
+- Mali
+- Malta
+- Marshall Islands
+- Martinique
+- Mauritania
+- Mauritius
+- Mayotte
+- Mexico
+- Micronesia
+- Moldova
+- Monaco
+- Mongolia
+- Montenegro
+- Morocco
+- Mozambique
+- Myanmar
+- Namibia
+- Nauru
+- Nepal
+- Netherlands
+- New Caledonia
+- New Zealand
+- Nicaragua
+- Niger
+- Nigeria
+- North Macedonia
+- Norway
+- Oman
+- Pakistan
+- Palau
+- Palestine
+- Panama
+- Papua New Guinea
+- Paraguay
+- Peru
+- Philippines
+- Poland
+- Portugal
+- Qatar
+- Réunion
+- Romania
+- Rwanda
+- Saint Barthelemy
+- Saint Helena
+- Saint Kitts and Nevis
+- Saint Lucia
+- Saint Martin (French part)
+- Saint Pierre and Miquelon
+- Saint Vincent and the Grenadines
+- Samoa
+- San Marino
+- Sao Tome and Principe
+- Saudi Arabia
+- Senegal
+- Serbia
+- Seychelles
+- Sierra Leone
+- Singapore
+- Slovakia
+- Slovenia
+- Solomon Islands
+- Somalia
+- South Africa
+- South Korea
+- South Sudan
+- Spain
+- Sri Lanka
+- Suriname
+- Sweden
+- Switzerland
+- Sudan
+- Svalbard and Jan Mayen
+- Taiwan
+- Tajikistan
+- Tanzania
+- Thailand
+- Timor-Leste (East Timor)
+- Togo
+- Tonga
+- Trinidad and Tobago
+- Tunisia
+- Turkey
+- Turkmenistan
+- Tuvalu
+- Uganda
+- Ukraine (with certain exceptions)
+- United Arab Emirates
+- United Kingdom
+- United States of America
+- Uruguay
+- Uzbekistan
+- Vanuatu
+- Vietnam
+- Wallis and Futuna
+- Yemen
+- Zambia
+- Zimbabwe
