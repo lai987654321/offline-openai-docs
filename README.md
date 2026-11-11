@@ -1,6 +1,6 @@
 # Offline OpenAI Docs
 
-可持續更新、以 Git 追蹤的 OpenAI 官方文件離線快照。初始資料於 2026-11-11 取得；目前快照時間與下載結果以 [manifest.json](manifest.json) 和 [summary.json](summary.json) 為準。
+可持續更新、以 Git 追蹤的 OpenAI 官方文件離線快照。這是非官方維護的文件鏡像，並非 OpenAI 官方發布的 repository。初始資料於 2026-11-11 取得；目前快照時間與下載結果以 [manifest.json](manifest.json) 和 [summary.json](summary.json) 為準。
 
 ## 離線查閱
 
@@ -18,7 +18,8 @@
 需要 Python 3.10 以上、Git，以及可連線到官方文件網站的環境。無額外 Python 套件需求。
 
 ```powershell
-Set-Location -LiteralPath 'C:\Users\lai98\OneDrive\ShihHsuan\ChatGPT\offline-openai-docs'
+git clone https://github.com/lai987654321/offline-openai-docs.git
+Set-Location offline-openai-docs
 python sync.py update
 python sync.py verify
 git status --short
@@ -26,6 +27,8 @@ git diff --stat
 git diff -- changes.json MISSING.md RETIRED.md
 git add .
 git commit -m "docs: refresh official OpenAI documentation"
+# 擁有遠端寫入權限時，可推送已檢視的更新
+git push origin main
 ```
 
 更新行為：
@@ -43,7 +46,7 @@ git commit -m "docs: refresh official OpenAI documentation"
 
 ## Git 與初始提交
 
-此為本機 repository，預設使用 `main` 分支，未設定遠端或自動排程。`.gitattributes` 禁止 Git 對官方原始文件轉換換行，以維持校驗碼。
+Repository 使用 `main` 分支，公開來源為 [lai987654321/offline-openai-docs](https://github.com/lai987654321/offline-openai-docs)。未設定自動更新排程。`.gitattributes` 禁止 Git 對官方原始文件轉換換行，以維持校驗碼。
 
 如果環境尚未設定 Git 作者資訊，初始提交以 `Codex <codex@local.invalid>` 作為自動產生快照的作者，僅作用於該次提交，不更動使用者或全域 Git 設定。後續個人提交請設定你自己的 repository-local 作者資訊：
 
